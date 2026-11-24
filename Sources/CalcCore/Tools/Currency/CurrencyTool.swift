@@ -7,7 +7,7 @@ public struct CurrencyTool: Tool {
 
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
         guard let provider = context.rates,
-              let parsed = ConversionParser.parse(query, settings: context.settings, resolve: { CurrencyLexicon.resolve($0, coins: false) }),
+              let parsed = ConversionParser.parse(ToolSupport.expandIndianMultipliers(query, settings: context.settings), settings: context.settings, resolve: { CurrencyLexicon.resolve($0, coins: false) }),
               let amount = parsed.amount else { return nil }
         let explicit = !parsed.targets.isEmpty
         let targets = explicit ? parsed.targets : ConversionRows.defaultTargets(excluding: parsed.from.code, settings: context.settings)

@@ -3,8 +3,24 @@ import Foundation
 /// Helpers shared by the data storage, px/em/rem, VAT, percentage and math tools.
 enum ToolSupport {
     /// A number with optional thousands/decimal separators, either style ("1,234.56" or "1.234,56").
-    static let number = #"(?:\d+(?:[.,]\d+)*|[.,]\d+)"#
+    static let number = #"(?:\d+(?:[.,]\d+)*|[.,]\d+)(?:[eE][-+]?\d+)?"#
     static let signedNumber = "-?" + number
+
+    /// Rewrites "5 lakh", "1.5 crore" (lac, lakhs, crores) as plain numbers: "5 lakh usd" becomes "500000 usd".
+    static func expandIndianMultipliers(_ query: String, settings: Settings) -> String {
+        let pattern = "(?<![\\w.,])(\\d+(?:[.,]\\d+)*|[.,]\\d+)\\s*(lakhs?|lacs?|crores?)(?![\\p{L}\\d])"
+        guard let re = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return query }
+        var out = query
+        let ns = query as NSString
+        for m in re.matches(in: query, range: NSRange(location: 0, length: ns.length)).reversed() {
+            guard let v = NumberFormat.parse(ns.substring(with: m.range(at: 1)), settings: settings) else { continue }
+            let word = ns.substring(with: m.range(at: 2)).lowercased()
+            var text = NumberFormat.plain(v * (word.hasPrefix("c") ? 1e7 : 1e5), decimals: 10)
+            if settings.decimalSeparator != "." { text = text.replacingOccurrences(of: ".", with: String(settings.decimalSeparator)) }
+            out = (out as NSString).replacingCharacters(in: m.range, with: text)
+        }
+        return out
+    }
 
     /// Lowercases, trims and collapses whitespace.
     static func normalize(_ query: String) -> String {

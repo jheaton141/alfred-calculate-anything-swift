@@ -1349,6 +1349,32 @@ If you need help please do not hesitate to open an issue filling all the questio
 			<key>config</key>
 			<dict>
 				<key>default</key>
+				<string>western</string>
+				<key>pairs</key>
+				<array>
+					<array>
+						<string>Western (1,234,567)</string>
+						<string>western</string>
+					</array>
+					<array>
+						<string>Indian (12,34,567)</string>
+						<string>indian</string>
+					</array>
+				</array>
+			</dict>
+			<key>description</key>
+			<string>How digits are grouped in results</string>
+			<key>label</key>
+			<string>Number grouping</string>
+			<key>type</key>
+			<string>popupbutton</string>
+			<key>variable</key>
+			<string>number_grouping</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
 				<string>2</string>
 				<key>placeholder</key>
 				<string>2</string>

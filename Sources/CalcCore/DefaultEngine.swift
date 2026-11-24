@@ -6,7 +6,7 @@ public enum DefaultEngine {
         var time = TimeOptions()
         if let id = settings.timezone, let zone = TimeZone(identifier: id) { time.zone = zone }
         if let format = settings.timeFormat { time.formats = [format] }
-        return [VatTool(), PercentageTool(), PxEmRemTool(), DataStorageTool(), TimeTool(options: time), UnitsTool(), CryptoTool(),
+        return [VatTool(), PercentageTool(), PxEmRemTool(), DataStorageTool(), TimeTool(options: time), RadixTool(), UnitsTool(), CryptoTool(),
                 CurrencyTool(), ColorTool(), MathTool()]
     }
 

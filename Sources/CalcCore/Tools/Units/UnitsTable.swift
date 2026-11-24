@@ -1,7 +1,7 @@
 import Foundation
 
 enum UnitDimension: String {
-    case length, area, volume, mass, speed, time, temperature, pressure, energy, power, angle
+    case length, area, volume, mass, speed, time, temperature, pressure, energy, power, angle, count
 }
 
 struct UnitDef {
@@ -37,6 +37,15 @@ enum UnitsTable {
         u("mi", .length, "mi", 1609.344, ["mile", "miles"]),
         u("nmi", .length, "nmi", 1852, ["nauticalmile", "nauticalmiles"]),
         u("hand", .length, "hand", 0.1016, ["hands"]),
+        u("thou", .length, "thou", 2.54e-5, ["mil", "mils"]),
+        u("link", .length, "link", 0.201168, ["links"]),
+        u("rod", .length, "rod", 5.0292, ["rods", "perch", "perches", "pole", "poles"]),
+        u("chain", .length, "chain", 20.1168, ["chains", "ch"]),
+        u("furlong", .length, "furlong", 201.168, ["furlongs", "fur"]),
+        u("league", .length, "league", 4828.032, ["leagues"]),
+        u("fathom", .length, "fathom", 1.8288, ["fathoms", "ftm", "fth"]),
+        u("cable", .length, "cable", 185.2, ["cables"]),
+        u("nleague", .length, "nautical league", 5556, ["nauticalleague", "nauticalleagues"]),
         u("ly", .length, "ly", 9_460_730_472_580_800, ["lightyear", "lightyears"]),
         u("au", .length, "au", au, ["astronomicalunit"]),
         u("pc", .length, "pc", au * 648_000 / Double.pi, ["parsec"]),
@@ -76,6 +85,16 @@ enum UnitsTable {
         u("yd3", .volume, "yd3", 764.554857984, ["cuyard"]),
         u("ft3", .volume, "ft3", 28.316846592, ["cufoot", "cufeet"]),
         u("in3", .volume, "in3", 0.016387064, ["cuinch", "cuinches"]),
+        u("peck", .volume, "peck", 8.80976754172, ["pecks", "uspeck", "pk"]),
+        u("bushel", .volume, "bushel", 35.23907016688, ["bushels", "usbushel", "bu"]),
+        u("ukpeck", .volume, "uk peck", 9.09218, ["ukpecks"]),
+        u("ukbushel", .volume, "uk bushel", 36.36872, ["ukbushels"]),
+        u("gill", .volume, "gill", 0.11829411825, ["gills", "usgill"]),
+        u("ukgill", .volume, "uk gill", 0.1420653125, ["ukgills"]),
+        u("barrel", .volume, "barrel", 158.987294928, ["barrels", "bbl", "oilbarrel"]),
+        u("dessertspoon", .volume, "dessertspoon", 0.00985784318750, ["dessertspoons", "dsp"]),
+        u("pinch", .volume, "pinch", 0.00030805759960937, ["pinches"]),
+        u("dash", .volume, "dash", 0.00061611519921875, ["dashes"]),
         // mass (base kg)
         u("kg", .mass, "kg", 1, ["kilogram", "kilo", "kilos", "kgs"]),
         u("g", .mass, "g", 0.001, ["gram", "gm"]),
@@ -87,6 +106,14 @@ enum UnitsTable {
         u("t", .mass, "t", 1000, ["tonne", "tonnes", "metricton"]),
         u("ukt", .mass, "ukt", 1016.0469088, ["longton", "ukton"]),
         u("ust", .mass, "ust", 907.18474, ["shortton", "uston", "ton"]),
+        u("grain", .mass, "grain", 6.479891e-5, ["grains", "gr"]),
+        u("dram", .mass, "dram", 0.0017718451953125, ["drams", "dr"]),
+        u("cwt", .mass, "cwt", 45.359237, ["hundredweight", "hundredweights", "cwts", "ushundredweight", "shorthundredweight"]),
+        u("ukcwt", .mass, "uk cwt", 50.80234544, ["longhundredweight", "ukhundredweight"]),
+        u("slug", .mass, "slug", 14.593902937206364, ["slugs"]),
+        u("ozt", .mass, "ozt", 0.0311034768, ["troyounce", "troyounces", "troyoz"]),
+        u("carat", .mass, "carat", 0.0002, ["carats", "ct"]),
+        u("dwt", .mass, "dwt", 0.00155517384, ["pennyweight", "pennyweights"]),
         // speed (base m/s)
         u("mps", .speed, "mps", 1, ["m/s", "meterspersecond", "meterpersecond"]),
         u("kph", .speed, "kph", 1000.0 / 3600.0, ["km/h", "kmh", "kmph", "kilometersperhour", "kilometerperhour"]),
@@ -104,6 +131,12 @@ enum UnitsTable {
         u("week", .time, "week", 604800, ["wk", "wks", "weeks"], plural: "weeks"),
         u("month", .time, "month", 2_628_000, ["mo", "months"], plural: "months"),
         u("year", .time, "year", 31_536_000, ["y", "yr", "yrs", "years"], plural: "years"),
+        // count words (base unit 1)
+        u("thousand", .count, "thousand", 1e3, []),
+        u("lakh", .count, "lakh", 1e5, ["lac", "lakhs", "lacs"]),
+        u("million", .count, "million", 1e6, []),
+        u("crore", .count, "crore", 1e7, ["crores"]),
+        u("billion", .count, "billion", 1e9, []),
         // temperature (base K, converted by formula)
         u("k", .temperature, "k", 1, ["kelvin", "kelvins"]),
         u("c", .temperature, "c", 1, ["celsius", "°c", "degc"]),

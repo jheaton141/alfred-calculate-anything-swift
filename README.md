@@ -19,7 +19,7 @@ Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter
 | Math | `12*(3+4)`, `2^10`, `sqrt(144)`, `50 % 7`, `1.5k * 3`, `10 + 5 * 2` |
 | Currency | `100 usd to eur`, `100€ to $`, `100 usd mxn`, `120 euros` (converts to your base currency) |
 | Crypto | `1 btc to usd`, `0.5 eth to eur` |
-| Units | `10 km to mi`, `100 f to c`, `2 cups to ml`, `5 stone to kg`, `3 tbsp to tsp`, `1 acre to m2` |
+| Units | `10 km to mi`, `100 f to c`, `2 cups to ml`, `5 stone to kg`, `3 tbsp to tsp`, `1 acre to m2`, `1 furlong to m`, `1 crore to million`, `10 lakh`, `3.2e-5 m to mm` |
 | Data storage | `2 gb to mb`, `400 MiB to kib` |
 | Percentage | `20% of 150`, `what is 20% of 150`, `150 + 20%`, `20% off 150`, `50 is what % of 200`, `20 is 10% of what`, `% change from 50 to 75` |
 | px / em / rem | `12px to em`, `1.5rem to px` |
@@ -49,6 +49,7 @@ Open the workflow's configuration panel in Alfred. The same names work as enviro
 | --- | --- | --- |
 | `language` | `en_EN` | Interface language: `en_EN`, `es_ES` or `sv_SE`. Unknown values fall back to English. |
 | `decimal_separator` | `.` | `.` or `,` for typed input and output. Mixed input such as `1.234,56` is detected automatically. |
+| `number_grouping` | `western` | `western` (1,234,567) or `indian` (12,34,567) digit grouping in results. |
 | `decimals` | `2` | Decimal places, 0 to 12. Rounding is half away from zero. |
 | `base_currency` | `USD` | Target for a bare amount such as `120 euros`. |
 | `currency_cache_hours` | `6` | How long fiat rates are reused before a refresh. |
@@ -65,7 +66,7 @@ English, Spanish and Swedish packs for the result text are built into the binary
 
 ```sh
 swift build
-swift test                   # 145 tests; set RUN_LIVE=1 to include the live-network test
+swift test                   # 161 tests; set RUN_LIVE=1 to include the live-network test
 ./.build/debug/calc "20% of 150"
 Tests/golden/compare.sh      # compares the Swift output with recorded upstream outputs over a query corpus
 ```

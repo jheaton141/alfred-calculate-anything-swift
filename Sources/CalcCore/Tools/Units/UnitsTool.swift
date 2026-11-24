@@ -8,7 +8,18 @@ public struct UnitsTool: Tool {
     private static let stopWords: Set<String> = ["to", "in", "as", "="]
 
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
-        guard let (amount, rest) = Self.splitAmount(query, settings: context.settings) else { return nil }
+        guard let (parsed, parsedRest) = Self.splitAmount(query, settings: context.settings) else { return nil }
+        var amount = parsed, rest = parsedRest
+        // "3 lakh m to km": a multiplier word before a unit scales the amount
+        let parts = rest.split(separator: " ", maxSplits: 1).map(String.init)
+        if parts.count == 2, let k = Self.bareMultiplier(parts[0]), !Self.stopWords.contains(parts[1].lowercased().split(separator: " ").first.map(String.init) ?? "") {
+            amount *= k; rest = parts[1]
+        }
+        if let words = Self.bareMultiplier(rest) {
+            let v = amount * words
+            let shown = ToolSupport.fmt(v, context.settings)
+            return [.value(title: shown, copy: shown, raw: ToolSupport.raw(v), strings: context.strings)]
+        }
         guard let (from, targets) = Self.splitUnits(rest) else { return nil }
         var items: [AlfredItem] = []
         for target in targets {
@@ -26,7 +37,7 @@ public struct UnitsTool: Tool {
     /// Leading signed number and the remaining text; nil without a number.
     static func splitAmount(_ query: String, settings: Settings) -> (Double, String)? {
         let q = query.trimmingCharacters(in: .whitespaces)
-        guard let r = q.range(of: #"^[-+]?(?:\d[\d,. ]*|\.\d+)"#, options: .regularExpression) else { return nil }
+        guard let r = q.range(of: #"^[-+]?(?:\d[\d,. ]*|\.\d+)(?:(?<=[0-9.,])[eE][-+]?\d+)?"#, options: .regularExpression) else { return nil }
         var numText = String(q[r])
         var rest = String(q[r.upperBound...])
         // a trailing "." or "," belongs to the text, not the number
@@ -36,6 +47,15 @@ public struct UnitsTool: Tool {
         if numText.hasPrefix("+") { numText.removeFirst() }
         guard let v = NumberFormat.parse(numText, settings: settings) else { return nil }
         return (v, rest.trimmingCharacters(in: .whitespaces))
+    }
+
+    /// "lakh", "lac" or "crore" alone after the number: the plain multiplier.
+    static func bareMultiplier(_ rest: String) -> Double? {
+        switch rest.lowercased() {
+        case "lakh", "lakhs", "lac", "lacs": return 1e5
+        case "crore", "crores": return 1e7
+        default: return nil
+        }
     }
 
     /// Splits "km to mi, ft" into source candidates and one candidate list per target.

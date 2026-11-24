@@ -8,7 +8,8 @@ public enum NumberFormat {
         var int = String(parts[0]); let neg = int.hasPrefix("-"); if neg { int.removeFirst() }
         var out = ""
         for (i, ch) in int.reversed().enumerated() {
-            if i > 0 && i % 3 == 0 { out.append(settings.thousandsSeparator) }
+            let groupEnd = i == 3 || (i > 3 && (i - 3) % 2 == 0)
+            if settings.numberGrouping == .indian ? groupEnd : (i > 0 && i % 3 == 0) { out.append(settings.thousandsSeparator) }
             out.append(ch)
         }
         out = String(out.reversed())
@@ -35,6 +36,12 @@ public enum NumberFormat {
     public static func parse(_ text: String, settings: Settings) -> Double? {
         var t = text.trimmingCharacters(in: .whitespaces)
         t.removeAll { $0 == " " }
+        // a trailing exponent ("1.5e3", "2E-4") scales the mantissa parsed on its own
+        if let r = t.range(of: #"(?<=[0-9.,])[eE][-+]?[0-9]+$"#, options: .regularExpression),
+           let exp = Double(t[r].dropFirst().replacingOccurrences(of: "+", with: "")),
+           let mantissa = parse(String(t[..<r.lowerBound]), settings: settings) {
+            return mantissa * pow(10, exp)
+        }
         let hasDot = t.contains("."), hasComma = t.contains(",")
         var decimalChar: Character?
         if hasDot && hasComma {

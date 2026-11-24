@@ -8,7 +8,7 @@ public struct MathTool: Tool {
     enum EvalError: Error { case syntax, divisionByZero, domain }
 
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
-        var parser = MathParser(Array(query), settings: context.settings)
+        var parser = MathParser(Array(ToolSupport.expandIndianMultipliers(query, settings: context.settings)), settings: context.settings)
         let value: Double
         do {
             value = try parser.parseAll()
@@ -19,8 +19,22 @@ public struct MathTool: Tool {
         } catch { return nil }
         guard parser.sawOperation else { return nil }
         guard value.isFinite else { return [.error(ToolSupport.tr(context.strings, "error_math_domain", "Invalid input"))] }
-        let shown = ToolSupport.fmt(value, context.settings)
-        return [.value(title: shown, copy: shown, raw: ToolSupport.raw(value), strings: context.strings)]
+        let sci = Self.usesScientific(value)
+        let shown = sci ? Self.scientific(value) : ToolSupport.fmt(value, context.settings)
+        let raw = sci && abs(value) < 1 ? Self.scientific(value, digits: 15) : ToolSupport.raw(value)
+        return [.value(title: shown, copy: shown, raw: raw, strings: context.strings)]
+    }
+
+    /// Magnitudes of 1e15 and above, or below 1e-9 (non-zero), print in scientific form.
+    static func usesScientific(_ v: Double) -> Bool { v != 0 && (abs(v) >= 1e15 || abs(v) < 1e-9) }
+
+    /// Mantissa with trailing zeros trimmed plus a signed exponent, e.g. 1.204e+24.
+    static func scientific(_ v: Double, digits: Int = 9) -> String {
+        let s = String(format: "%.\(digits)e", v)
+        guard let e = s.firstIndex(of: "e") else { return s }
+        var mantissa = String(s[..<e])
+        if mantissa.contains(".") { while mantissa.hasSuffix("0") { mantissa.removeLast() }; if mantissa.hasSuffix(".") { mantissa.removeLast() } }
+        return mantissa + s[e...]
     }
 }
 
@@ -95,7 +109,11 @@ struct MathParser {
     }
 
     private mutating func power() throws -> Double {
-        let base = try atom()
+        var base = try atom()
+        while pos < chars.count, peek() == "!", !(pos + 1 < chars.count && chars[pos + 1] == "=") {
+            pos += 1; sawOperation = true
+            base = try Self.factorial(base)
+        }
         guard let c = peek() else { return base }
         if c == "^" || (c == "*" && pos + 1 < chars.count && chars[pos + 1] == "*") {
             pos += c == "^" ? 1 : 2; sawOperation = true
@@ -135,12 +153,32 @@ struct MathParser {
         throw MathTool.EvalError.syntax
     }
 
+    /// Consumes an exponent like e3, E-2 or e+5 right after a number; leaves `2e` and `2exp(` alone.
+    private mutating func scientificExponent() -> Int? {
+        guard pos < chars.count, chars[pos] == "e" || chars[pos] == "E" else { return nil }
+        var i = pos + 1
+        var sign = 1
+        if i < chars.count, chars[i] == "+" || chars[i] == "-" { sign = chars[i] == "-" ? -1 : 1; i += 1 }
+        let start = i
+        while i < chars.count, chars[i].isASCII, chars[i].isNumber { i += 1 }
+        guard i > start, i - start <= 4, !(i < chars.count && chars[i].isLetter), let n = Int(String(chars[start..<i])) else { return nil }
+        pos = i
+        return sign * n
+    }
+
+    /// n! for whole n in 0...170; anything else is a domain error.
+    private static func factorial(_ n: Double) throws -> Double {
+        guard n >= 0, n <= 170, n == n.rounded() else { throw MathTool.EvalError.domain }
+        return n < 2 ? 1 : (2...Int(n)).reduce(1.0) { $0 * Double($1) }
+    }
+
     private mutating func numberLiteral() throws -> Double {
         var text = ""
         while pos < chars.count, chars[pos].isASCII, chars[pos].isNumber || chars[pos] == "." || chars[pos] == "," {
             text.append(chars[pos]); pos += 1
         }
         guard text.contains(where: { $0.isNumber }), var v = NumberFormat.parse(text, settings: settings) else { throw MathTool.EvalError.syntax }
+        if let exp = scientificExponent() { v *= pow(10, Double(exp)); sawOperation = true }
         if pos < chars.count, let mult = Self.suffixes[chars[pos]],
            pos + 1 >= chars.count || !chars[pos + 1].isLetter {
             v *= mult; pos += 1; sawOperation = true
