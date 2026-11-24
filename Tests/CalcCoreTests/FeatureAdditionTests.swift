@@ -63,6 +63,11 @@ final class CompoundUnitTests: XCTestCase {
         XCTAssertEqual(run("5,5 ft 3 in to cm", comma)?.first?.title, "175,26 cm")
     }
 
+    func testMinutesBeforeSeconds() {
+        XCTAssertEqual(UnitsTool.expandCompound("2 m 30 s to s", settings: Settings()), "150 s to s")
+        XCTAssertEqual(UnitsTool.expandCompound("2 m 30 cm to cm", settings: Settings()), "230 cm to cm")
+    }
+
     func testCompoundGuards() {
         XCTAssertNil(run("3 in 5 ft to cm"), "ascending units are not a compound amount")
         XCTAssertEqual(run("5 ft 3 in to kg")?.first?.valid, false)

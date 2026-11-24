@@ -59,6 +59,14 @@ public struct UnitsTool: Tool {
 
     /// "5 ft 3 in to cm": a run of amounts in descending units of one dimension, rewritten as a single amount of the smallest unit.
     static func expandCompound(_ query: String, settings: Settings) -> String? {
+        if let r = expandCompoundParts(query, settings: settings) { return r }
+        // "2 m 30 s": a leading "m" is minutes when a later part is a time unit
+        guard let re = try? NSRegularExpression(pattern: #"^(\s*\d+(?:[.,]\d+)?\s*)m(?=\s*\d)"#, options: [.caseInsensitive]),
+              let m = re.firstMatch(in: query, range: NSRange(location: 0, length: (query as NSString).length)) else { return nil }
+        return expandCompoundParts((query as NSString).replacingCharacters(in: m.range(at: 0), with: (query as NSString).substring(with: m.range(at: 1)) + "min"), settings: settings)
+    }
+
+    private static func expandCompoundParts(_ query: String, settings: Settings) -> String? {
         let number = #"\d+(?:[.,]\d+)?"#
         guard let re = try? NSRegularExpression(pattern: #"\s*("# + number + #")\s*([\p{L}'"′″]+)"#, options: []) else { return nil }
         let ns = query as NSString
