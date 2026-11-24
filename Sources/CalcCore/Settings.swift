@@ -11,6 +11,8 @@ public struct Settings: Equatable {
     public var basePixels = 16.0
     public var vatPercentage = 16.0
     public var language = "en_EN"
+    public var timezone: String?
+    public var timeFormat: String?
 
     public init() {}
 
@@ -23,5 +25,7 @@ public struct Settings: Equatable {
         if let v = (env["base_pixels"] ?? env["pixels_base"]).flatMap(Double.init) { basePixels = v }
         if let v = (env["vat_percentage"] ?? env["vat_value"]).flatMap(Double.init) { vatPercentage = v }
         if let v = env["language"], !v.isEmpty { language = v }
+        if let v = env["timezone"] ?? env["time_zone"], !v.isEmpty { timezone = v }
+        if let v = env["time_format"], !v.isEmpty { timeFormat = v }
     }
 }

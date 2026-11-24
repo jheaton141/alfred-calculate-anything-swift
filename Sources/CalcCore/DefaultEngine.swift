@@ -2,8 +2,12 @@ import Foundation
 
 public enum DefaultEngine {
     /// The tools in dispatch order. Ports register themselves here.
-    public static func tools() -> [Tool] {
-        [VatTool(), PercentageTool(), PxEmRemTool(), DataStorageTool(), UnitsTool(), CryptoTool(), CurrencyTool(), ColorTool(), MathTool()]
+    public static func tools(settings: Settings = Settings()) -> [Tool] {
+        var time = TimeOptions()
+        if let id = settings.timezone, let zone = TimeZone(identifier: id) { time.zone = zone }
+        if let format = settings.timeFormat { time.formats = [format] }
+        return [VatTool(), PercentageTool(), PxEmRemTool(), DataStorageTool(), UnitsTool(), CryptoTool(), CurrencyTool(),
+                TimeTool(options: time), ColorTool(), MathTool()]
     }
 
     /// Where cached rates and settings live: alfred_workflow_data, else ./.data next to the working directory.

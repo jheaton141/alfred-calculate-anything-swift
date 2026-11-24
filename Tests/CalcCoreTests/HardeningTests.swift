@@ -114,3 +114,19 @@ final class SettingsCompatTests: XCTestCase {
         XCTAssertEqual(s.basePixels, 10)
     }
 }
+
+final class TimeWiringTests: XCTestCase {
+    func testTimeZoneSettingAndDispatch() async {
+        let s = Settings(environment: ["time_zone": "Asia/Tokyo", "time_format": "Y-m-d H:i"])
+        XCTAssertEqual(s.timezone, "Asia/Tokyo")
+        let now = Date(timeIntervalSince1970: 1_700_000_000) // 2023-11-14 22:13:20 UTC
+        let ctx = Context(settings: s, now: now, dataDir: URL(fileURLWithPath: NSTemporaryDirectory()))
+        let engine = Engine(tools: DefaultEngine.tools(settings: s))
+        let titles = await engine.run("time now", context: ctx).items.map(\.title)
+        XCTAssertTrue(titles.contains("2023-11-15 07:13"), "got \(titles)")
+        for q in ["5 + 5", "10 km to mi", "20% of 150", "red"] {
+            let r = await engine.run(q, context: ctx).items.map(\.title)
+            XCTAssertFalse(r.contains { $0.contains("2023") }, "\(q) was claimed by time: \(r)")
+        }
+    }
+}
