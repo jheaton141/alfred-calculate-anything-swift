@@ -21,11 +21,11 @@ print -r -- "${INFO}"
 [[ "${INFO}" == *arm64* && "${INFO}" == *x86_64* ]] || { print -u2 "binary is not universal"; exit 1; }
 
 cp "${BIN}" "${STAGE}/calc"
-cp "${ROOT}/Packaging/info.plist" "${STAGE}/info.plist"
+cp "${ROOT}/info.plist" "${STAGE}/info.plist"
 cp "${ROOT}/icon.png" "${STAGE}/icon.png"
 
 # Copy only the files the plist readme references.
-for ref in ${(f)"$(grep -o '\./assets/[A-Za-z0-9_./-]*' "${ROOT}/Packaging/info.plist" | sort -u)"}; do
+for ref in ${(f)"$(grep -o '\./assets/[A-Za-z0-9_./-]*' "${ROOT}/info.plist" | sort -u)"}; do
   mkdir -p "${STAGE}/${ref:h}"
   cp "${ROOT}/${ref}" "${STAGE}/${ref}"
 done
@@ -38,5 +38,6 @@ fi
 codesign -dv "${STAGE}/calc" 2>&1 | grep -E 'Signature|Identifier' || true
 
 (cd "${STAGE}" && zip -qry "${OUT}" .)
-print "size: $(du -h "${STAGE}/calc" | cut -f1) binary, $(du -h "${OUT}" | cut -f1) zip"
+rm -rf "${STAGE}"
+print "size: $(du -h "${BIN}" | cut -f1) binary, $(du -h "${OUT}" | cut -f1) zip"
 print "sha256: $(shasum -a 256 "${OUT}")"

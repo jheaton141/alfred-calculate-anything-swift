@@ -152,7 +152,9 @@ public struct TimeTool: Tool {
         }
         let ago = until && diff < 0
         let title = plural(n, unit) + (ago ? " ago" : "")
-        let sub = String(format: ToolSupport.tr(x.strings, "until_subtitle", "%@ until %@"), g[0], g[2]).replacingOccurrences(of: "until", with: g[1])
+        let sub = until
+            ? String(format: ToolSupport.tr(x.strings, "until_subtitle", "%@ until %@"), g[0], g[2])
+            : String(format: ToolSupport.tr(x.strings, "since_subtitle", "%@ since %@"), g[0], g[2])
         return [row(title, sub, copy: String(n), raw: String(n), x)]
     }
 

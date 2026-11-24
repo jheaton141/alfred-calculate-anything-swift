@@ -8,7 +8,7 @@
 Packaging/build.sh
 ```
 
-It runs `swift build -c release --arch arm64 --arch x86_64`, checks `lipo -info`, stages `calc`, `info.plist`, `icon.png` and the assets the plist references, ad-hoc signs the binary, zips it and prints the sha256. Add `Packaging/dist/` to `.gitignore`. `Packaging/info.plist` is the new workflow definition; it runs `./calc` and has no API-key settings.
+It runs `swift build -c release --arch arm64 --arch x86_64`, checks `lipo -info`, stages `calc`, `info.plist`, `icon.png` and the assets the plist references, ad-hoc signs the binary, zips it and prints the sha256. The root `info.plist` is the workflow definition; it runs `./calc` and has no API-key settings.
 
 ## Developer ID signing and notarization
 
