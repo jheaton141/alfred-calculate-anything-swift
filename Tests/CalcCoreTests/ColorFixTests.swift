@@ -31,7 +31,7 @@ final class ColorFixTests: XCTestCase {
     }
 
     func testXYZReferenceStaysShort() {
-        XCTAssertEqual(ColorMath.format(C(r: 255, g: 255, b: 255), "xyz"), "color(xyz 95.05 100 108.88)")
+        XCTAssertEqual(ColorMath.format(C(r: 255, g: 255, b: 255), "xyz"), "color(xyz 0.9505 1 1.0888)")
     }
 
     func testAlphaSurvivesEverySpace() {

@@ -6,35 +6,38 @@ public struct PercentageTool: Tool {
     public init() {}
 
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
-        let q = ToolSupport.normalize(query)
-        guard q.contains("%") || q.contains("percent") else { return nil }
+        guard query.count <= 200 else { return nil }
+        let q = ToolSupport.normalize(query).replacingOccurrences(of: #"(?<![a-z])percent(?:age)?(?![a-z])"#, with: "%", options: .regularExpression)
+        guard q.contains("%") else { return nil }
         let n = "(\(ToolSupport.number))", sn = "(\(ToolSupport.signedNumber))"
         let st = context.settings
         func num(_ s: String) -> Double? { NumberFormat.parse(s, settings: st) }
-        func item(_ title: String, _ value: Double, copy: String? = nil) -> AlfredItem {
-            .value(title: title, copy: copy ?? title, raw: ToolSupport.raw(value), strings: context.strings)
+        let invalid = [ToolSupport.invalidInput(context.strings)]
+        func plain(_ v: Double) -> [AlfredItem] {
+            guard v.isFinite else { return invalid }
+            let t = ToolSupport.show(v, st)
+            return [.value(title: t, copy: t, raw: ToolSupport.rawValue(v, st), strings: context.strings)]
         }
-        func plain(_ v: Double) -> AlfredItem { item(ToolSupport.fmt(v, st), v) }
 
         // N% of M
-        if let g = ToolSupport.match("(?:what(?: is|'s|s) |calculate )?\(n) ?% ?(?:of|in) \(sn)", in: q),
-           let p = num(g[0]), let a = num(g[1]) { return [plain(p / 100 * a)] }
+        if let g = ToolSupport.match("(?:what(?: is|'s|s) |calculate )?\(sn) ?% ?(?:of|in) \(sn)", in: q),
+           let p = num(g[0]), let a = num(g[1]) { return plain(p / 100 * a) }
 
         // N +/- P%
-        if let g = ToolSupport.match("\(sn) ?(\\+|plus|-|minus) ?\(n) ?%", in: q),
+        if let g = ToolSupport.match("\(sn) ?(\\+|plus|-|minus) ?\(sn) ?%", in: q),
            let a = num(g[0]), let p = num(g[2]) {
             let add = g[1] == "+" || g[1] == "plus"
-            return [plain(add ? a + a * p / 100 : a - a * p / 100)]
+            return plain(add ? a + a * p / 100 : a - a * p / 100)
         }
 
         // P% off N
-        if let g = ToolSupport.match("\(n) ?% off \(sn)", in: q), let p = num(g[0]), let a = num(g[1]) {
-            return [plain(a - a * p / 100)]
+        if let g = ToolSupport.match("\(sn) ?% off \(sn)", in: q), let p = num(g[0]), let a = num(g[1]) {
+            return plain(a - a * p / 100)
         }
 
         // A is P% of what
         if let g = ToolSupport.match("\(sn) is \(n) ?% of what", in: q), let a = num(g[0]), let p = num(g[1]) {
-            return p == 0 ? [ToolSupport.divisionByZero(context.strings)] : [plain(a / (p / 100))]
+            return p == 0 ? [ToolSupport.divisionByZero(context.strings)] : plain(a / (p / 100))
         }
 
         // percentage change between two numbers
@@ -59,32 +62,35 @@ public struct PercentageTool: Tool {
     private func percentChange(from a: Double, to b: Double, _ c: Context) -> AlfredItem {
         guard a != 0 else { return ToolSupport.divisionByZero(c.strings) }
         let pct = (b - a) / abs(a) * 100
-        let shown = ToolSupport.fmt(abs(pct), c.settings)
+        guard pct.isFinite else { return ToolSupport.invalidInput(c.strings) }
+        let s = ToolSupport.displaySettings([a, b, pct], c.settings)
+        let shown = ToolSupport.show(abs(pct), s)
         let sign = pct > 0 ? "+" : (pct < 0 ? "-" : "")
         let key = pct > 0 ? "change_increase" : (pct < 0 ? "change_decrease" : "change_none")
         let fallback = pct > 0 ? "increase from %@ to %@" : (pct < 0 ? "decrease from %@ to %@" : "no change from %@ to %@")
-        let detail = String(format: ToolSupport.tr(c.strings, key, fallback), ToolSupport.fmt(a, c.settings), ToolSupport.fmt(b, c.settings))
+        let detail = String(format: ToolSupport.tr(c.strings, key, fallback), ToolSupport.show(a, c.settings), ToolSupport.show(b, c.settings))
         let title = "\(sign)\(shown)% (\(detail))"
-        return .value(title: title, copy: "\(sign)\(shown)%", raw: ToolSupport.raw(pct), strings: c.strings)
+        return .value(title: title, copy: "\(sign)\(shown)%", raw: ToolSupport.rawValue(pct, c.settings), strings: c.strings)
     }
 
     private func isWhatPercent(_ a: Double, _ b: Double, _ c: Context) -> [AlfredItem] {
         guard b != 0 else { return [ToolSupport.divisionByZero(c.strings)] }
         let s = c.settings, str = c.strings
-        func row(_ title: String, _ v: Double) -> AlfredItem { .value(title: title, copy: title, raw: ToolSupport.raw(v), strings: str) }
+        func row(_ title: String, _ v: Double) -> AlfredItem { .value(title: title, copy: title, raw: ToolSupport.rawValue(v, s), strings: str) }
+        func show(_ v: Double) -> String { ToolSupport.show(v, s) }
         let pct = a / b * 100
+        guard pct.isFinite else { return [ToolSupport.invalidInput(str)] }
         let isFmt = ToolSupport.tr(str, "percentage_result", "%@ is %@ of %@")
-        var rows = [row(String(format: isFmt, ToolSupport.fmt(a, s), ToolSupport.fmt(pct, s) + "%", ToolSupport.fmt(b, s)), pct)]
+        var rows = [row(String(format: isFmt, show(a), show(pct) + "%", show(b)), pct)]
         let lo = min(a, b), hi = max(a, b)
-        if lo != 0 {
-            let v = (hi - lo) / lo * 100
+        // bases use abs() like the change rows, so negative numbers give positive magnitudes
+        if lo != 0, case let v = (hi - lo) / abs(lo) * 100, v.isFinite {
             rows.append(row(String(format: ToolSupport.tr(str, "percentage_increase", "The percentage increase from %@ to %@ is %@"),
-                                   ToolSupport.fmt(lo, s), ToolSupport.fmt(hi, s), ToolSupport.fmt(v, s) + "%"), v))
+                                   show(lo), show(hi), show(v) + "%"), v))
         }
-        if hi != 0 {
-            let v = (hi - lo) / hi * 100
+        if hi != 0, case let v = (hi - lo) / abs(hi) * 100, v.isFinite {
             rows.append(row(String(format: ToolSupport.tr(str, "percentage_decrease", "The percentage decrease from %@ to %@ is %@"),
-                                   ToolSupport.fmt(hi, s), ToolSupport.fmt(lo, s), ToolSupport.fmt(v, s) + "%"), v))
+                                   show(hi), show(lo), show(v) + "%"), v))
         }
         return rows
     }

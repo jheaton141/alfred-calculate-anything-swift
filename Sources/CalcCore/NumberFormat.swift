@@ -17,45 +17,59 @@ public enum NumberFormat {
         return (neg ? "-" : "") + out
     }
 
-    /// Unformatted number rounded half away from zero (half away from zero), trailing zeros trimmed, "." decimal point.
+    /// Unformatted number rounded half away from zero, trailing zeros trimmed, "." decimal point.
     public static func plain(_ value: Double, decimals: Int) -> String {
         let d = min(max(decimals, 0), 12)
         var s: String
-        if value.isFinite, abs(value) < 1e15, var src = Decimal(string: String(value)) {
+        // 15 significant digits drop binary float noise such as -6995.039999999999
+        let clean = value.isFinite ? (Double(String(format: "%.14e", value)) ?? value) : value
+        if clean.isFinite, abs(clean) < 1e15, var src = Decimal(string: String(clean)) {
             var rounded = Decimal()
             NSDecimalRound(&rounded, &src, d, .plain)
-            s = String(format: "%.\(d)f", NSDecimalNumber(decimal: rounded).doubleValue)
+            s = String(describing: rounded)
         } else {
-            s = String(format: "%.\(d)f", value)
+            s = String(format: "%.\(d)f", clean)
         }
         if s.contains(".") { while s.hasSuffix("0") { s.removeLast() }; if s.hasSuffix(".") { s.removeLast() } }
         return s == "-0" ? "0" : s
     }
 
-    /// Parses "1,234.56", "1.234,56", "1234.5" and "1,5": with both separators the last one is the decimal point; a lone one is a decimal point unless repeated or followed by exactly three digits where the setting says thousands.
+    /// Parses "1,234.56", "1.234,56", "1234.5" and "1,5": with both separators the last one is the decimal point; a lone one is a decimal point unless repeated or followed by exactly three digits where the setting says thousands. Malformed grouping returns nil.
     public static func parse(_ text: String, settings: Settings) -> Double? {
         var t = text.trimmingCharacters(in: .whitespaces)
         t.removeAll { $0 == " " }
-        // a trailing exponent ("1.5e3", "2E-4") scales the mantissa parsed on its own
-        if let r = t.range(of: #"(?<=[0-9.,])[eE][-+]?[0-9]+$"#, options: .regularExpression),
-           let exp = Double(t[r].dropFirst().replacingOccurrences(of: "+", with: "")),
-           let mantissa = parse(String(t[..<r.lowerBound]), settings: settings) {
-            return mantissa * pow(10, exp)
+        var exponent = ""
+        if let r = t.range(of: #"(?<=[0-9.,])[eE][-+]?[0-9]+$"#, options: .regularExpression) {
+            exponent = "e" + t[r].dropFirst().replacingOccurrences(of: "+", with: "")
+            t = String(t[..<r.lowerBound])
+        }
+        var sign = ""
+        if let f = t.first, f == "-" || f == "+" { sign = f == "-" ? "-" : ""; t.removeFirst() }
+        guard let digits = normalizedDigits(t, settings: settings) else { return nil }
+        guard let v = Double(sign + digits + exponent), v.isFinite else { return nil }
+        return v
+    }
+
+    /// Digits with "." as the only separator, or nil when the grouping is malformed.
+    private static func normalizedDigits(_ t: String, settings: Settings) -> String? {
+        guard !t.isEmpty, t.allSatisfy({ $0.isASCII && ($0.isNumber || $0 == "." || $0 == ",") }) else { return nil }
+        func isGrouped(_ parts: [Substring]) -> Bool {
+            guard let first = parts.first, (1...3).contains(first.count) else { return false }
+            return parts.dropFirst().allSatisfy { $0.count == 3 }
         }
         let hasDot = t.contains("."), hasComma = t.contains(",")
-        var decimalChar: Character?
+        if !hasDot && !hasComma { return t }
         if hasDot && hasComma {
-            decimalChar = t.lastIndex(of: ".")! > t.lastIndex(of: ",")! ? "." : ","
-        } else if hasDot || hasComma {
-            let sep: Character = hasDot ? "." : ","
-            let parts = t.split(separator: sep, omittingEmptySubsequences: false)
-            let thousands = parts.count > 2 || (parts.count == 2 && parts[1].count == 3 && sep == settings.thousandsSeparator)
-            decimalChar = thousands ? nil : sep
+            let dec: Character = t.lastIndex(of: ".")! > t.lastIndex(of: ",")! ? "." : ","
+            let thou: Character = dec == "." ? "," : "."
+            let halves = t.split(separator: dec, omittingEmptySubsequences: false)
+            guard halves.count == 2, !halves[1].contains(thou), isGrouped(halves[0].split(separator: thou, omittingEmptySubsequences: false)) else { return nil }
+            return halves[0].replacingOccurrences(of: String(thou), with: "") + "." + halves[1]
         }
-        var out = ""
-        for ch in t {
-            if ch == decimalChar { out.append(".") } else if ch == "." || ch == "," { continue } else { out.append(ch) }
-        }
-        return Double(out)
+        let sep: Character = hasDot ? "." : ","
+        let parts = t.split(separator: sep, omittingEmptySubsequences: false)
+        if parts.count > 2 { return isGrouped(parts) ? parts.joined() : nil }
+        if parts[1].count == 3, sep == settings.thousandsSeparator, isGrouped(parts) { return parts.joined() }
+        return parts[0] + "." + parts[1]
     }
 }

@@ -179,3 +179,15 @@ final class CurrencyTests: XCTestCase {
         XCTAssertEqual(r?.first?.valid, false)
     }
 }
+
+final class CurrencyVerifyFixTests: XCTestCase {
+    func testBaseCurrencyUnknownFallsBack() {
+        var s = Settings(); s.baseCurrency = "ZZZ"
+        XCTAssertEqual(ConversionRows.defaultTargets(excluding: "USD", settings: s).map(\.code), ["EUR"])
+        XCTAssertEqual(ConversionRows.defaultTargets(excluding: "EUR", settings: s).map(\.code), ["USD"])
+    }
+    func testErrorRowMessageIsClean() {
+        let items = ConversionRows.errorRow(RatesError.unavailable("No fiat rates"), context: Context(dataDir: FileManager.default.temporaryDirectory))
+        XCTAssertEqual(items.first?.subtitle, "No fiat rates")
+    }
+}

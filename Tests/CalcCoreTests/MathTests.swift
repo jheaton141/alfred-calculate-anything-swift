@@ -50,7 +50,7 @@ final class MathTests: XCTestCase {
     }
 
     func testNil() {
-        for q in ["10", "-5", "(5)", "pi", "e", "", "hello", "10 km to mi", "2 +", "(1 + 2", "1 + 2)", "20% of 150", "150 + 20%",
+        for q in ["10", "-5", "(5)", "pi", "e", "", "hello", "10 km to mi", "2 +", "(1 + 2", "1 + 2)", "20% of 150",
                   "100 vat", "5 m", "2e", "foo(3)", "sqrt 4", "1 2", "10 gb to mb", "..", "5m"] {
             let items = run(q)
             XCTAssertNil(items, q)

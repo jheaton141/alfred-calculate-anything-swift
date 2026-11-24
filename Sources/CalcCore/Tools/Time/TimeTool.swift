@@ -15,6 +15,11 @@ public struct TimeTool: Tool {
     public let options: TimeOptions
     public init(options: TimeOptions = TimeOptions()) { self.options = options }
 
+    /// Longest query worth parsing; longer input is never a date and would only cost quadratic parsing time.
+    private static let maxQueryLength = 200
+    /// Delimiter positions tried when splitting a query into two halves.
+    private static let maxSplits = 6
+
     private struct Env {
         let context: Context
         let parser: DateParser
@@ -27,6 +32,7 @@ public struct TimeTool: Tool {
         let x = Env(context: context, parser: DateParser(zone: options.zone, now: context.now), zone: options.zone)
         let q0 = ToolSupport.normalize(query)
         let explicit = q0 == "time" || q0.hasPrefix("time ")
+        guard q0.count <= Self.maxQueryLength else { return explicit ? [invalid(x)] : nil }
 
         if let r = zoneQuery(q0, x) { return r }
         let q = explicit ? String(q0.dropFirst(4)).trimmingCharacters(in: .whitespaces) : q0
@@ -51,15 +57,21 @@ public struct TimeTool: Tool {
         return item
     }
 
-    private func plural(_ n: Int, _ unit: String) -> String { "\(n) \(unit)\(abs(n) == 1 ? "" : "s")" }
+    private func plural(_ n: Int, _ unit: String, _ x: Env) -> String {
+        "\(n) \(x.strings["unit_\(unit)" + (abs(n) == 1 ? "" : "s")])"
+    }
+
+    private func agoText(_ text: String, _ x: Env) -> String {
+        String(format: ToolSupport.tr(x.strings, "time_ago", "%@ ago"), text)
+    }
 
     /// "1 month, 25 days" between two instants, calendar-aware.
     private func span(_ a: Date, _ b: Date, _ x: Env) -> String {
         let (s, e) = a <= b ? (a, b) : (b, a)
         let c = TimeCal.diff(s, e, x.zone)
         let parts: [(Int?, String)] = [(c.y, "year"), (c.mo, "month"), (c.d, "day"), (c.h, "hour"), (c.mi, "minute"), (c.s, "second")]
-        let text = parts.compactMap { n, u in (n ?? 0) != 0 ? plural(n!, u) : nil }
-        return text.isEmpty ? "0 seconds" : text.joined(separator: ", ")
+        let text = parts.compactMap { n, u in (n ?? 0) != 0 ? plural(n!, u, x) : nil }
+        return text.isEmpty ? plural(0, "second", x) : text.joined(separator: ", ")
     }
 
     private func stamp(_ d: Date) -> Int { Int(d.timeIntervalSince1970.rounded(.down)) }
@@ -71,16 +83,16 @@ public struct TimeTool: Tool {
         var items: [AlfredItem] = []
         for f in options.formats {
             let pattern = f.trimmingCharacters(in: .whitespaces)
-            let text = DatePattern.format(pattern, date, x.zone)
+            let text = DatePattern.format(pattern, date, x.zone, x.strings)
             items.append(row(text, String(format: ToolSupport.tr(x.strings, "format_subtitle", "Format %@"), pattern), raw: iso, x))
         }
         if !isNow {
             let s = span(x.now, date, x)
-            let text = date < x.now ? s + " ago" : s
-            items.append(row(text, "Timespan", raw: iso, x))
+            let text = date < x.now ? agoText(s, x) : s
+            items.append(row(text, ToolSupport.tr(x.strings, "timespan", "Timespan"), raw: iso, x))
         }
         let ts = String(stamp(date))
-        items.append(row(ts, "Timestamp", raw: ts, x))
+        items.append(row(ts, ToolSupport.tr(x.strings, "timestamp", "Timestamp"), raw: ts, x))
         return items
     }
 
@@ -106,8 +118,8 @@ public struct TimeTool: Tool {
         let date = text == "now" ? x.now : x.parser.parse(text, explicit: true)?.date
         guard let d = date, TimeCal.inRange(d) else { return nil }
         let ts = String(stamp(d))
-        let sub = "Unix timestamp of \(plainDate(d, x))"
-        return [row(ts, sub, raw: ts, x), row(ts + "000", "Milliseconds", raw: ts + "000", x)]
+        let sub = String(format: ToolSupport.tr(x.strings, "unix_timestamp_of", "Unix timestamp of %@"), plainDate(d, x))
+        return [row(ts, sub, raw: ts, x), row(ts + "000", ToolSupport.tr(x.strings, "milliseconds", "Milliseconds"), raw: ts + "000", x)]
     }
 
     // MARK: start / end of
@@ -159,20 +171,25 @@ public struct TimeTool: Tool {
         }
         let diff = target.date.timeIntervalSince(x.now)
         let hours = Int(abs(diff) / 3600)
-        var unit = g[0].hasSuffix("s") ? String(g[0].dropLast()) : g[0]
+        let requested = g[0].hasSuffix("s") ? String(g[0].dropLast()) : g[0]
+        var unit = requested
         var n: Int
         switch unit {
         case "week": n = Int(abs(diff) / 604_800)
-        case "day": if hours < 24 { n = hours; unit = "hour" } else { n = Int((Double(hours) / 24).rounded()) }
+        case "day":
+            let (a, b) = (TimeCal.civil(target.date, x.zone), TimeCal.civil(x.now, x.zone))
+            n = abs(TimeCal.daysFromCivil(a.y, a.m, a.d) - TimeCal.daysFromCivil(b.y, b.m, b.d))
+            if n == 0 { n = hours; unit = "hour" }
         case "hour": n = hours
         case "minute": n = Int(abs(diff) / 60)
         default: n = Int(abs(diff))
         }
         let ago = until && diff < 0
-        let title = plural(n, unit) + (ago ? " ago" : "")
+        let title = ago ? agoText(plural(n, unit, x), x) : plural(n, unit, x)
+        let unitWord = x.strings["unit_\(requested)s"]
         let sub = until
-            ? String(format: ToolSupport.tr(x.strings, "until_subtitle", "%@ until %@"), g[0], g[2])
-            : String(format: ToolSupport.tr(x.strings, "since_subtitle", "%@ since %@"), g[0], g[2])
+            ? String(format: ToolSupport.tr(x.strings, "until_subtitle", "%@ until %@"), unitWord, g[2])
+            : String(format: ToolSupport.tr(x.strings, "since_subtitle", "%@ since %@"), unitWord, g[2])
         return [row(title, sub, copy: String(n), raw: String(n), x)]
     }
 
@@ -180,19 +197,22 @@ public struct TimeTool: Tool {
 
     private func differenceQuery(_ q: String, explicit: Bool, _ x: Env) -> [AlfredItem]? {
         var body = q
-        for prefix in ["days between ", "time between ", "between "] where body.hasPrefix(prefix) { body = String(body.dropFirst(prefix.count)); break }
+        var isExplicit = explicit
+        for prefix in ["days between ", "time between ", "between "] where body.hasPrefix(prefix) {
+            body = String(body.dropFirst(prefix.count)); isExplicit = true; break
+        }
         guard let re = try? NSRegularExpression(pattern: #"\s+(?:-|to|until|and)\s+"#, options: []) else { return nil }
         let ns = body as NSString
-        for m in re.matches(in: body, range: NSRange(location: 0, length: ns.length)) {
+        for m in re.matches(in: body, range: NSRange(location: 0, length: ns.length)).prefix(Self.maxSplits) {
             let left = ns.substring(to: m.range.location), right = ns.substring(from: m.range.location + m.range.length)
-            guard let a = x.parser.parse(left, explicit: explicit)?.date, let b = x.parser.parse(right, explicit: explicit)?.date else { continue }
+            guard let a = x.parser.parse(left, explicit: isExplicit)?.date, let b = x.parser.parse(right, explicit: isExplicit)?.date else { continue }
             let (s, e) = a <= b ? (a, b) : (b, a)
             let days = TimeCal.totalDays(s, e, x.zone)
             let hours = Int(e.timeIntervalSince(s) / 3600)
             let sub = String(format: ToolSupport.tr(x.strings, "difference_subtitle", "Time difference between %@ and %@"), plainDate(a, x), plainDate(b, x))
             return [row(span(a, b, x), sub, raw: String(Int(e.timeIntervalSince(s))), x),
-                    row(plural(days, "day"), ToolSupport.tr(x.strings, "total_days", "Total days"), copy: String(days), raw: String(days), x),
-                    row(plural(hours, "hour"), ToolSupport.tr(x.strings, "total_hours", "Total hours"), copy: String(hours), raw: String(hours), x)]
+                    row(plural(days, "day", x), ToolSupport.tr(x.strings, "total_days", "Total days"), copy: String(days), raw: String(days), x),
+                    row(plural(hours, "hour", x), ToolSupport.tr(x.strings, "total_hours", "Total hours"), copy: String(hours), raw: String(hours), x)]
         }
         return nil
     }
@@ -223,10 +243,16 @@ public struct TimeTool: Tool {
             srcZone = z; isNow = true
         } else if let g = ToolSupport.match("(?:(.+?)\\s+)?(?:at\\s+)?(\(DateParser.clockPattern))(?:\\s+(.+))?", in: left) {
             guard let clock = DateParser.parseClock(g[1]) else { return nil }
-            if !g[2].isEmpty { guard let z = ZoneResolver.resolve(g[2]) else { return nil }; srcZone = z }
+            var trailingDay = ""
+            if !g[2].isEmpty {
+                if let z = ZoneResolver.resolve(g[2]) { srcZone = z } else if g[0].isEmpty { trailingDay = g[2] } else { return nil }
+            }
             let srcParser = DateParser(zone: srcZone.zone, now: x.now)
             var day = srcParser.startOfDay(x.now)
-            if !g[0].isEmpty {
+            if !trailingDay.isEmpty {
+                guard let p = srcParser.parseBase(trailingDay, explicit: true) else { return nil }
+                day = srcParser.startOfDay(p.date)
+            } else if !g[0].isEmpty {
                 guard let p = srcParser.parseBase(g[0], explicit: true) else { return nil }
                 day = srcParser.startOfDay(p.date)
             }
@@ -246,12 +272,12 @@ public struct TimeTool: Tool {
         guard resolved.count == names.count else { return nil }
 
         let srcLabel = ZoneResolver.label(src, at: instant)
-        let srcText = "\(TimeCal.fmt("H:i", instant, src.zone)) \(srcLabel) (\(TimeCal.fmt("D j M", instant, src.zone)))"
+        let srcText = "\(TimeCal.fmt("H:i", instant, src.zone, x.strings)) \(srcLabel) (\(TimeCal.fmt("D j M", instant, src.zone, x.strings)))"
         return resolved.map { t in
             let label = ZoneResolver.label(t, at: instant)
-            let title = "\(TimeCal.fmt("H:i", instant, t.zone)) \(label) (\(TimeCal.fmt("D j M", instant, t.zone)))"
-            let full = "\(TimeCal.fmt("l, F j, Y H:i:s", instant, t.zone)) \(label) (UTC\(TimeCal.offset(t.zone, instant)))"
-            var sub = (isNow ? "Now: " : "From ") + srcText
+            let title = "\(TimeCal.fmt("H:i", instant, t.zone, x.strings)) \(label) (\(TimeCal.fmt("D j M", instant, t.zone, x.strings)))"
+            let full = "\(TimeCal.fmt("l, F j, Y H:i:s", instant, t.zone, x.strings)) \(label) (UTC\(TimeCal.offset(t.zone, instant)))"
+            var sub = String(format: ToolSupport.tr(x.strings, isNow ? "zone_now" : "zone_from", isNow ? "Now: %@" : "From %@"), srcText)
             for note in [src.note, t.note].compactMap({ $0 }) { sub += "; " + note }
             return row(title, sub, raw: TimeCal.iso(instant, t.zone), alt: full, x)
         }

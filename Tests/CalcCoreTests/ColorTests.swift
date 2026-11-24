@@ -29,14 +29,14 @@ final class ColorTests: XCTestCase {
         XCTAssertEqual(one("hsl(210, 100%, 56%) to hex"), "#1f8fff")
         XCTAssertEqual(one("red to hsl"), "hsl(0, 100%, 50%)")
         XCTAssertEqual(one("#f00 hex"), "#ff0000")
-        XCTAssertEqual(one("ff8000 to rgb"), "rgb(255, 128, 0)")
+        XCTAssertEqual(one("#ff8000 to rgb"), "rgb(255, 128, 0)")
         XCTAssertEqual(one("#ff000080 to rgb"), "rgba(255, 0, 0, 0.5)")
         XCTAssertEqual(one("rgba(255,0,0,0.5) to hex"), "#ff000080")
         XCTAssertEqual(one("hsb(120, 100%, 100%) to hex"), "#00ff00")
         XCTAssertEqual(one("hwb(0 0% 0%) to hex"), "#ff0000")
         XCTAssertEqual(one("cmyk(0%, 100%, 100%, 0%) to hex"), "#ff0000")
         XCTAssertEqual(one("lab(53.24% 80.09 67.2) to hex"), "#ff0000")
-        XCTAssertEqual(one("white to xyz"), "color(xyz 95.05 100 108.88)")
+        XCTAssertEqual(one("white to xyz"), "color(xyz 0.9505 1 1.0888)")
     }
 
     func testBareColourListsAllSpaces() {

@@ -45,14 +45,21 @@ enum ConversionRows {
     }
 
     static func errorRow(_ error: Error, context: Context) -> [AlfredItem] {
-        [AlfredItem.error(text(context, "rates_unavailable", "Exchange rates unavailable"), subtitle: "\(error)")]
+        [AlfredItem.error(text(context, "rates_unavailable", "Exchange rates unavailable"), subtitle: message(error))]
+    }
+
+    private static func message(_ error: Error) -> String {
+        if case RatesError.unavailable(let m) = error { return m }
+        return error.localizedDescription
     }
 
     /// Targets for a query with none: the configured base currencies other than the source.
     static func defaultTargets(excluding code: String, settings: Settings) -> [CurrencyUnit] {
         let list = settings.baseCurrency.split(whereSeparator: { ", ;".contains($0) }).map { $0.uppercased() }
         var codes = list.filter { $0 != code && CurrencyLexicon.fiatCodes.contains($0) }
-        if codes.isEmpty && code != "USD" { codes = ["USD"] }
+        let configured = list.contains { CurrencyLexicon.fiatCodes.contains($0) }
+        if codes.isEmpty && !configured { codes = [code == "USD" ? "EUR" : "USD"] }
+        else if codes.isEmpty && code != "USD" { codes = ["USD"] }
         return codes.map { CurrencyUnit(code: $0) }
     }
 

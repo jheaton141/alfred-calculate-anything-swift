@@ -20,7 +20,8 @@ public struct RadixTool: Tool {
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
         guard let m = ToolSupport.match(Self.pattern, in: ToolSupport.normalize(query)), m.count == 4,
               let target = Self.bases[m[3]] else { return nil }
-        let token = m[1]
+        var token = m[1]
+        if token.hasPrefix("+") { token.removeFirst() }
         // A base word may come before or after the number, not both.
         if !m[0].isEmpty && !m[2].isEmpty { return nil }
         let word = (m[0].isEmpty ? m[2] : m[0]), wordBase = Self.bases[word]
@@ -34,13 +35,18 @@ public struct RadixTool: Tool {
             }
         } else if let w = wordBase {
             source = w
-        } else if token.allSatisfy({ $0.isNumber || $0 == "." || $0 == "-" || $0 == "+" }) {
+        } else if token.contains(where: { $0.isNumber }), token.allSatisfy({ $0.isNumber || $0 == "." || $0 == "-" || $0 == "_" }) {
             source = Self.bases["dec"]!
         } else {
             return nil
         }
 
         let invalid = ToolSupport.tr(context.strings, "error_radix_invalid", "Enter a whole number from 0 to 18446744073709551615")
+        // digit separators may sit only between digits
+        if digits.contains("_") {
+            guard !digits.hasPrefix("_"), !digits.hasSuffix("_"), !digits.contains("__") else { return [.error(invalid)] }
+            digits.removeAll { $0 == "_" }
+        }
         guard !digits.isEmpty, digits.allSatisfy({ $0.isASCII && ($0.isNumber || $0.isLetter) }),
               let n = UInt64(digits, radix: source.radix) else { return [.error(invalid)] }
 

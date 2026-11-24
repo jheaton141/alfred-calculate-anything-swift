@@ -19,22 +19,10 @@ public struct MathTool: Tool {
         } catch { return nil }
         guard parser.sawOperation else { return nil }
         guard value.isFinite else { return [.error(ToolSupport.tr(context.strings, "error_math_domain", "Invalid input"))] }
-        let sci = Self.usesScientific(value)
-        let shown = sci ? Self.scientific(value) : ToolSupport.fmt(value, context.settings)
-        let raw = sci && abs(value) < 1 ? Self.scientific(value, digits: 15) : ToolSupport.raw(value)
+        let sci = ToolSupport.usesScientific(value, context.settings)
+        let shown = sci ? ToolSupport.scientific(value) : ToolSupport.fmt(value, context.settings)
+        let raw = sci && abs(value) < 1 ? ToolSupport.scientific(value, digits: 15) : ToolSupport.raw(value)
         return [.value(title: shown, copy: shown, raw: raw, strings: context.strings)]
-    }
-
-    /// Magnitudes of 1e15 and above, or below 1e-9 (non-zero), print in scientific form.
-    static func usesScientific(_ v: Double) -> Bool { v != 0 && (abs(v) >= 1e15 || abs(v) < 1e-9) }
-
-    /// Mantissa with trailing zeros trimmed plus a signed exponent, e.g. 1.204e+24.
-    static func scientific(_ v: Double, digits: Int = 9) -> String {
-        let s = String(format: "%.\(digits)e", v)
-        guard let e = s.firstIndex(of: "e") else { return s }
-        var mantissa = String(s[..<e])
-        if mantissa.contains(".") { while mantissa.hasSuffix("0") { mantissa.removeLast() }; if mantissa.hasSuffix(".") { mantissa.removeLast() } }
-        return mantissa + s[e...]
     }
 }
 
@@ -71,14 +59,29 @@ struct MathParser {
         var v = try term()
         while let c = peek(), c == "+" || c == "-" {
             pos += 1; sawOperation = true
-            let r = try term()
+            let r = try term(percentOf: v)
             v = c == "+" ? v + r : v - r
         }
         return v
     }
 
-    private mutating func term() throws -> Double {
+    /// True when the "%" at `pos` is a postfix percent rather than modulo: nothing that starts an operand follows it.
+    private func percentFollows() -> Bool {
+        guard pos < chars.count, chars[pos] == "%" else { return false }
+        var i = pos + 1
+        while i < chars.count, chars[i].isWhitespace { i += 1 }
+        guard i < chars.count else { return true }
+        let n = chars[i]
+        return !(n.isNumber || n == "." || n == "," || n == "(" || n == "π" || n.isLetter)
+    }
+
+    /// A product/quotient chain; with `percentOf` set (right of + or -), a leading "N%" means N percent of that base.
+    private mutating func term(percentOf base: Double? = nil) throws -> Double {
         var v = try unary()
+        if let base, peek() == "%", percentFollows() {
+            pos += 1; sawOperation = true
+            v = v / 100 * base
+        }
         while let c = peek(), "*/%×÷".contains(c) {
             if c == "*", pos + 1 < chars.count, chars[pos + 1] == "*" { break }
             pos += 1; sawOperation = true
@@ -90,7 +93,9 @@ struct MathParser {
                 v /= r
             default:
                 if r == 0 { throw MathTool.EvalError.divisionByZero }
-                v = v.truncatingRemainder(dividingBy: r)
+                let q = v / r
+                // a quotient within float noise of a whole number divides exactly
+                v = abs(q - q.rounded()) <= 1e-12 * max(1, abs(q)) ? 0 : v.truncatingRemainder(dividingBy: r)
             }
         }
         return v
@@ -178,7 +183,10 @@ struct MathParser {
             text.append(chars[pos]); pos += 1
         }
         guard text.contains(where: { $0.isNumber }), var v = NumberFormat.parse(text, settings: settings) else { throw MathTool.EvalError.syntax }
-        if let exp = scientificExponent() { v *= pow(10, Double(exp)); sawOperation = true }
+        if let exp = scientificExponent() {
+            guard let scaled = NumberFormat.parse(text + "e\(exp)", settings: settings) else { throw MathTool.EvalError.syntax }
+            v = scaled; sawOperation = true
+        }
         if pos < chars.count, let mult = Self.suffixes[chars[pos]],
            pos + 1 >= chars.count || !chars[pos + 1].isLetter {
             v *= mult; pos += 1; sawOperation = true

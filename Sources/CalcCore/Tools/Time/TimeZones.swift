@@ -126,8 +126,18 @@ enum ZoneResolver {
     static func abbreviation(_ zone: TimeZone, at date: Date) -> String {
         if let (std, dst) = european[zone.identifier] { return zone.isDaylightSavingTime(for: date) ? dst : std }
         if let f = fixed[zone.identifier] { return f }
-        if zone.identifier == "UTC" || zone.identifier == "GMT" { return "UTC" }
-        return zone.abbreviation(for: date) ?? zone.identifier
+        if isUTC(zone) { return "UTC" }
+        if let name = zone.abbreviation(for: date), !name.hasPrefix("GMT+"), !name.hasPrefix("GMT-") { return name }
+        return TimeCal.offset(zone, date).replacingOccurrences(of: ":", with: "")
+    }
+
+    private static func isUTC(_ zone: TimeZone) -> Bool { ["UTC", "GMT", "Etc/UTC", "Etc/GMT", "Zulu"].contains(zone.identifier) }
+
+    /// The "e" letter: the zone id, "UTC" for UTC and a numeric offset for fixed-offset zones.
+    static func identifierLabel(_ zone: TimeZone) -> String {
+        if isUTC(zone) { return "UTC" }
+        if zone.identifier.hasPrefix("GMT+") || zone.identifier.hasPrefix("GMT-") { return TimeCal.offset(zone, Date()) }
+        return zone.identifier
     }
 
     static func label(_ r: ResolvedZone, at date: Date) -> String { r.label ?? abbreviation(r.zone, at: date) }

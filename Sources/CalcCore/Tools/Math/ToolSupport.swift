@@ -37,12 +37,44 @@ enum ToolSupport {
         }
     }
 
+    /// Digits shown for a non-zero value that would otherwise round to 0.
+    static let tinyDigits = 8
+
+    /// Settings with extra precision when a non-zero value would display as 0 (never at decimals 0).
+    static func displaySettings(_ values: [Double], _ s: Settings) -> Settings {
+        guard s.decimals > 0 else { return s }
+        var st = s
+        let half = 0.5 * pow(10, -Double(s.decimals))
+        if values.contains(where: { $0.isFinite && $0 != 0 && abs($0) < half }) { st.decimals = max(s.decimals, tinyDigits) }
+        return st
+    }
+
     /// Display string: grouped, rounded to the user's decimals, but keeps precision for tiny non-zero values.
     static func fmt(_ v: Double, _ s: Settings) -> String {
-        var st = s
-        if v != 0, abs(v) < 0.5 * pow(10, -Double(max(s.decimals, 0))) { st.decimals = max(s.decimals, 8) }
-        return NumberFormat.display(v, settings: st)
+        NumberFormat.display(v, settings: displaySettings([v], s))
     }
+
+    /// Magnitudes of 1e15 and above, or too small to show at the displayed precision, print in scientific form.
+    static func usesScientific(_ v: Double, _ s: Settings = Settings()) -> Bool {
+        v.isFinite && v != 0 && (abs(v) >= 1e15 || abs(v) < pow(10, -Double(max(s.decimals, tinyDigits))) * 0.999999)
+    }
+
+    /// Mantissa with trailing zeros trimmed plus a signed exponent, e.g. 1.204e+24.
+    static func scientific(_ v: Double, digits: Int = 9) -> String {
+        let s = String(format: "%.\(digits)e", v)
+        guard let e = s.firstIndex(of: "e") else { return s }
+        var mantissa = String(s[..<e])
+        if mantissa.contains(".") { while mantissa.hasSuffix("0") { mantissa.removeLast() }; if mantissa.hasSuffix(".") { mantissa.removeLast() } }
+        return mantissa + s[e...]
+    }
+
+    /// Display string that switches huge and tiny magnitudes to scientific form.
+    static func show(_ v: Double, _ s: Settings) -> String { usesScientific(v, s) ? scientific(v) : fmt(v, s) }
+
+    /// Raw copy string that never prints hundreds of digits.
+    static func rawValue(_ v: Double, _ s: Settings) -> String { usesScientific(v, s) ? scientific(v, digits: 15) : raw(v) }
+
+    static func invalidInput(_ strings: Strings) -> AlfredItem { .error(tr(strings, "error_math_domain", "Invalid input")) }
 
     /// Unformatted number for the cmd (raw copy) action.
     static func raw(_ v: Double) -> String { NumberFormat.plain(v, decimals: 10) }

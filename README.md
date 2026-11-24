@@ -66,7 +66,7 @@ English, Spanish and Swedish packs for the result text are built into the binary
 
 ```sh
 swift build
-swift test                   # 161 tests; set RUN_LIVE=1 to include the live-network test
+swift test                   # 205 tests; set RUN_LIVE=1 to include the live-network test
 ./.build/debug/calc "20% of 150"
 Tests/golden/compare.sh      # compares the Swift output with recorded upstream outputs over a query corpus
 ```

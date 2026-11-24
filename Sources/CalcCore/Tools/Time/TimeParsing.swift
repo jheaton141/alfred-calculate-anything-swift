@@ -167,10 +167,22 @@ struct DateParser {
         return parseBase(s, explicit: explicit)
     }
 
+    /// True for the day phrases that may be followed by a clock: today/tomorrow/yesterday and weekday names.
+    static func dayWords(_ text: String) -> Bool {
+        ToolSupport.match("(?:today|tomorrow|yesterday|(?:(?:next|last|previous|this)\\s+)?(?:\(weekdayAlt)))", in: text) != nil
+    }
+
     /// A single date: keyword, weekday phrase, "next month", or an absolute date.
     func parseBase(_ raw: String, explicit: Bool) -> ParsedDate? {
         let s = raw.trimmingCharacters(in: .whitespaces).lowercased()
         if s == "now" { return ParsedDate(date: now, hasTime: true) }
+        if explicit, Self.parseClock(s) != nil, ToolSupport.match(Self.clockPattern, in: s) != nil {
+            return Self.parseClock(s).flatMap { setClock(startOfDay(now), $0) }.map { ParsedDate(date: $0, hasTime: true) }
+        }
+        if let g = ToolSupport.match("(\(Self.clockPattern))\\s+(?:on\\s+)?(.+)", in: s), Self.parseClock(g[0]) != nil,
+           Self.dayWords(g[1]) {
+            return parseBase(g[1] + " " + g[0], explicit: explicit)
+        }
         if let g = ToolSupport.match(#"(today|tomorrow|yesterday)(?:\s+(?:at\s+)?(.+))?"#, in: s) {
             let offset = g[0] == "tomorrow" ? 1 : g[0] == "yesterday" ? -1 : 0
             if g[1].isEmpty {

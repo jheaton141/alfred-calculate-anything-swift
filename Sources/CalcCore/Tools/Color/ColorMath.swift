@@ -32,7 +32,8 @@ enum ColorMath {
         var parts = body.replacingOccurrences(of: ",", with: " ").replacingOccurrences(of: "/", with: " ")
             .split(whereSeparator: { $0.isWhitespace }).map(String.init)
         var name = fn
-        if fn == "color", parts.first == "xyz" { name = "xyz"; parts.removeFirst() }
+        var cssXYZ = false
+        if fn == "color", parts.first == "xyz" { name = "xyz"; parts.removeFirst(); cssXYZ = true }
         let args = parts.compactMap(parseArg)
         guard args.count == parts.count else { return nil }
         let n = args.count
@@ -67,7 +68,9 @@ enum ColorMath {
             return fromLab(v[0], v[1] * cos(rad), v[1] * sin(rad), alpha(3))
         case "xyz":
             guard n == 3 || n == 4 else { return nil }
-            return fromXYZ(v[0] / 100, v[1] / 100, v[2] / 100, alpha(3))
+            // color(xyz ...) is CSS 0-1 unless a component exceeds 2 (then legacy 0-100); xyz(...) is always 0-100.
+            let scale = cssXYZ && v[0...2].allSatisfy({ abs($0) <= 2 }) ? 1.0 : 100.0
+            return fromXYZ(v[0] / scale, v[1] / scale, v[2] / scale, alpha(3))
         default: return nil
         }
     }
@@ -195,9 +198,25 @@ enum ColorMath {
     private static func labFInv(_ t: Double) -> Double { t * t * t > 216.0 / 24389 ? t * t * t : (116 * t - 16) / (24389.0 / 27) }
 
     /// WCAG 2 relative luminance.
-    static func luminance(_ c: RGBA) -> Double {
-        let (r, g, b) = unit(c)
-        return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+    static func luminance(_ c: RGBA) -> Double { luminance(unit(c)) }
+
+    static func luminance(_ c: (Double, Double, Double)) -> Double {
+        0.2126 * linear(c.0) + 0.7152 * linear(c.1) + 0.0722 * linear(c.2)
+    }
+
+    /// Channels (0 to 1) of a colour composited over an opaque background.
+    static func composite(_ c: RGBA, over bg: (Double, Double, Double)) -> (Double, Double, Double) {
+        let u = unit(c)
+        return (u.0 * c.a + bg.0 * (1 - c.a), u.1 * c.a + bg.1 * (1 - c.a), u.2 * c.a + bg.2 * (1 - c.a))
+    }
+
+    /// Shortest alpha text (2 or 3 decimals) that keeps the same 8-bit hex alpha.
+    static func alphaText(_ a: Double) -> String {
+        for p in 2...3 {
+            let s = NumberFormat.plain(a, decimals: p)
+            if let v = Double(s), clamp255(v * 255) == clamp255(a * 255) { return s }
+        }
+        return NumberFormat.plain(a, decimals: 3)
     }
 
     // MARK: formatting
@@ -205,7 +224,7 @@ enum ColorMath {
     /// Formats a colour in the named space; percent-based spaces use the fewest decimals that round-trip to the same rgb.
     static func format(_ c: RGBA, _ space: String) -> String {
         let hasAlpha = c.a < 1
-        let alpha = NumberFormat.plain(c.a, decimals: 2)
+        let alpha = alphaText(c.a)
         func n(_ v: Double, _ p: Int) -> String { NumberFormat.plain(v, decimals: p) }
         switch space {
         case "hex":
@@ -248,10 +267,10 @@ enum ColorMath {
             let chroma = hypot(v.a, v.b)
             return "lch(\(n(v.l, 2))% \(n(chroma, 2)) \(n(chroma < 0.005 ? 0 : h, 2))\(hasAlpha ? " / \(alpha)" : ""))"
         default:
-            // Two decimals can be too coarse for dark colours, so widen until the rgb survives the round trip.
-            return roundTrip(c, decimals: 2...6) { p in
+            // CSS 0-1 scale; widen decimals until the rgb survives the round trip.
+            return roundTrip(c, decimals: 4...8) { p in
                 let v = toXYZ(c)
-                return "color(xyz \(n(v.x * 100, p)) \(n(v.y * 100, p)) \(n(v.z * 100, p))\(hasAlpha ? " / \(alpha)" : ""))"
+                return "color(xyz \(n(v.x, p)) \(n(v.y, p)) \(n(v.z, p))\(hasAlpha ? " / \(alpha)" : ""))"
             }
         }
     }

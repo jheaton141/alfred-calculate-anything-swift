@@ -27,10 +27,18 @@ public struct Settings: Equatable {
         if let v = env["base_currency"], !v.isEmpty { baseCurrency = v.uppercased() }
         if let v = env["currency_cache_hours"].flatMap(Double.init) { fiatCacheHours = v }
         if let v = (env["base_pixels"] ?? env["pixels_base"]).flatMap(Double.init) { basePixels = v }
-        if let v = (env["vat_percentage"] ?? env["vat_value"]).flatMap(Double.init) { vatPercentage = v }
+        if let v = (env["vat_percentage"] ?? env["vat_value"]).flatMap(Self.parseVatPercentage) { vatPercentage = v }
         if let v = env["number_grouping"]?.lowercased(), let g = NumberGrouping(rawValue: v) { numberGrouping = g }
         if let v = env["language"], !v.isEmpty { language = v }
         if let v = env["timezone"] ?? env["time_zone"], !v.isEmpty { timezone = v }
         if let v = env["time_format"], !v.isEmpty { timeFormat = v }
+    }
+
+    /// A finite rate above -100, written like "20", " 20 " or "20%"; anything else is nil.
+    static func parseVatPercentage(_ text: String) -> Double? {
+        var t = text.trimmingCharacters(in: .whitespaces)
+        if t.hasSuffix("%") { t.removeLast(); t = t.trimmingCharacters(in: .whitespaces) }
+        guard let v = Double(t), v.isFinite, v > -100 else { return nil }
+        return v
     }
 }

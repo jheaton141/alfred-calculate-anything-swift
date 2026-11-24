@@ -120,7 +120,9 @@ enum TimeCal {
     }
 
     /// "HH:mm" style output via date pattern letters (j F, Y, g:i a) in a given zone.
-    static func fmt(_ pattern: String, _ date: Date, _ zone: TimeZone) -> String { DatePattern.format(pattern, date, zone) }
+    static func fmt(_ pattern: String, _ date: Date, _ zone: TimeZone, _ strings: Strings = .en) -> String {
+        DatePattern.format(pattern, date, zone, strings)
+    }
 
     /// "+09:00" style offset of a zone at a date.
     static func offset(_ zone: TimeZone, _ date: Date) -> String {
@@ -135,8 +137,9 @@ enum TimeCal {
 
 /// Formats dates with date pattern letters (j F, Y, g:i a) (upstream's time_format setting), e.g. "F jS, Y, g:i:s a".
 enum DatePattern {
-    private static let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-    private static let days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    private static func names(_ strings: Strings, _ key: String) -> [String] {
+        strings[key].split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+    }
 
     private static func year4(_ y: Int) -> String { (y < 0 ? "-" : "") + String(format: "%04d", abs(y)) }
 
@@ -153,7 +156,8 @@ enum DatePattern {
         return (c.y, week)
     }
 
-    static func format(_ pattern: String, _ date: Date, _ zone: TimeZone) -> String {
+    static func format(_ pattern: String, _ date: Date, _ zone: TimeZone, _ strings: Strings = .en) -> String {
+        let months = names(strings, "month_names"), days = names(strings, "weekday_names")
         let c = TimeCal.civil(date, zone)
         let y = c.y, mo = c.m, d = c.d, h = c.h, mi = c.mi, s = c.s, wd = c.weekday + 1
         let h12 = h % 12 == 0 ? 12 : h % 12
@@ -196,14 +200,14 @@ enum DatePattern {
             case "s": out += p2(s)
             case "u": out += "000000"
             case "v": out += "000"
-            case "e": out += zone.identifier
+            case "e": out += ZoneResolver.identifierLabel(zone)
             case "I": out += zone.isDaylightSavingTime(for: date) ? "1" : "0"
             case "O": out += TimeCal.offset(zone, date).replacingOccurrences(of: ":", with: "")
             case "P": out += TimeCal.offset(zone, date)
             case "T": out += ZoneResolver.abbreviation(zone, at: date)
             case "Z": out += String(zone.secondsFromGMT(for: date))
-            case "c": out += format("Y-m-d\\TH:i:sP", date, zone)
-            case "r": out += format("D, d M Y H:i:s O", date, zone)
+            case "c": out += format("Y-m-d\\TH:i:sP", date, zone, strings)
+            case "r": out += format("D, d M Y H:i:s O", date, zone, strings)
             case "U": out += String(Int(date.timeIntervalSince1970.rounded(.down)))
             default: out.append(ch)
             }

@@ -9,6 +9,8 @@ public struct CryptoTool: Tool {
         guard let provider = context.rates,
               let parsed = ConversionParser.parse(ToolSupport.expandIndianMultipliers(query, settings: context.settings), settings: context.settings, resolve: { CurrencyLexicon.resolve($0, coins: true) })
         else { return nil }
+        // Unit words that are also tickers need an explicit target ("ton" alone is a unit).
+        if parsed.targets.isEmpty, ["TON"].contains(parsed.from.code) { return nil }
         let targets = parsed.targets.isEmpty ? ConversionRows.defaultTargets(excluding: parsed.from.code, settings: context.settings) : parsed.targets
         let units = [parsed.from] + targets
         guard units.contains(where: { $0.isCrypto }), !targets.isEmpty else { return nil }

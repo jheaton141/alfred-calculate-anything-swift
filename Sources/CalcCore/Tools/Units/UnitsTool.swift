@@ -8,8 +8,11 @@ public struct UnitsTool: Tool {
     private static let stopWords: Set<String> = ["to", "in", "as", "="]
 
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
+        let verdict = ScaleFormat.check(query)
+        if verdict == .skip { return nil }
         guard let (parsed, parsedRest) = Self.splitAmount(query, settings: context.settings) else { return nil }
         var amount = parsed, rest = parsedRest
+        if verdict == .overflow { amount = .infinity }
         // "3 lakh m to km": a multiplier word before a unit scales the amount
         let parts = rest.split(separator: " ", maxSplits: 1).map(String.init)
         if parts.count == 2, let k = Self.bareMultiplier(parts[0]), !Self.stopWords.contains(parts[1].lowercased().split(separator: " ").first.map(String.init) ?? "") {
@@ -17,10 +20,12 @@ public struct UnitsTool: Tool {
         }
         if let words = Self.bareMultiplier(rest) {
             let v = amount * words
+            guard v.isFinite else { return [ScaleFormat.invalid(context.strings)] }
             let shown = ToolSupport.fmt(v, context.settings)
             return [.value(title: shown, copy: shown, raw: ToolSupport.raw(v), strings: context.strings)]
         }
         guard let (from, targets) = Self.splitUnits(rest) else { return nil }
+        if !amount.isFinite { return [ScaleFormat.invalid(context.strings)] }
         var items: [AlfredItem] = []
         for target in targets {
             guard let pair = Self.pick(from: from, to: target) else {
@@ -45,7 +50,7 @@ public struct UnitsTool: Tool {
             numText.removeLast(); rest = String(last) + rest
         }
         if numText.hasPrefix("+") { numText.removeFirst() }
-        guard let v = NumberFormat.parse(numText, settings: settings) else { return nil }
+        guard let v = NumberFormat.parse(numText, settings: settings) ?? (ScaleFormat.overflowing(numText) ? Double.infinity : nil) else { return nil }
         return (v, rest.trimmingCharacters(in: .whitespaces))
     }
 
@@ -90,18 +95,28 @@ public struct UnitsTool: Tool {
     // MARK: conversion
 
     static func convert(_ v: Double, from: UnitDef, to: UnitDef) -> Double {
-        guard from.dim == .temperature else { return v * from.factor / to.factor }
-        let kelvin: Double
-        switch from.id {
-        case "c": kelvin = v + 273.15
-        case "f": kelvin = (v + 459.67) * 5 / 9
-        default: kelvin = v
+        guard from.dim == .temperature else {
+            let r = v * from.factor / to.factor
+            return r.isFinite ? r : v * (from.factor / to.factor)
         }
+        let kv = kelvin(v, from)
         switch to.id {
-        case "c": return kelvin - 273.15
-        case "f": return kelvin * 9 / 5 - 459.67
-        default: return kelvin
+        case "c": return kv - 273.15
+        case "f": return kv * 9 / 5 - 459.67
+        default: return kv
         }
+    }
+
+    /// Kelvin value of a temperature; below absolute zero (beyond rounding noise) is NaN.
+    static func kelvin(_ v: Double, _ from: UnitDef) -> Double {
+        let k: Double
+        switch from.id {
+        case "c": k = v + 273.15
+        case "f": k = (v + 459.67) * 5 / 9
+        default: k = v
+        }
+        if k < -1e-9 { return .nan }
+        return max(k, 0)
     }
 
     // MARK: output
@@ -112,11 +127,7 @@ public struct UnitsTool: Tool {
         return out
     }
 
-    private static func show(_ v: Double, _ s: Settings) -> String {
-        let t = NumberFormat.display(v, settings: s)
-        if t == "0", v != 0 { return String(format: "%.4g", v) }
-        return t
-    }
+    private static func show(_ v: Double, _ s: Settings) -> String { ScaleFormat.show(v, s) }
 
     private static func label(_ unit: UnitDef, value: Double) -> String {
         guard let plural = unit.plural else { return unit.symbol }
@@ -125,10 +136,13 @@ public struct UnitsTool: Tool {
 
     private static func rows(amount: Double, from: UnitDef, to: UnitDef, context: Context) -> [AlfredItem] {
         let s = settingsFor(to, context.settings)
-        let converted = convert(amount, from: from, to: to)
+        if from.dim == .temperature, kelvin(amount, from).isNaN { return [ScaleFormat.invalid(context.strings)] }
+        let rawConverted = convert(amount, from: from, to: to)
+        guard rawConverted.isFinite else { return [ScaleFormat.invalid(context.strings)] }
+        let converted = ScaleFormat.clean(rawConverted)
         let shown = show(converted, s)
         let unitText = label(to, value: Double(NumberFormat.plain(converted, decimals: s.decimals)) ?? converted)
-        let raw = NumberFormat.plain(converted, decimals: s.decimals)
+        let raw = ScaleFormat.raw(converted, decimals: s.decimals)
         let title = "\(shown) \(unitText)"
         var items = [AlfredItem.value(title: title, copy: shown, raw: raw, withUnit: title, strings: context.strings)]
 
