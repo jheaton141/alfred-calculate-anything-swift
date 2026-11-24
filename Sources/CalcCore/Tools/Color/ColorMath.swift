@@ -42,7 +42,7 @@ enum ColorMath {
         switch name {
         case "rgb", "rgba":
             guard n == 3 || n == 4 else { return nil }
-            let ch = (0..<3).map { args[$0].percent ? v[$0] * 2.55 : v[$0] }
+            let ch = (0..<3).map { args[$0].percent ? v[$0] * 255 / 100 : v[$0] }
             return RGBA(r: clamp255(ch[0]), g: clamp255(ch[1]), b: clamp255(ch[2]), a: alpha(3))
         case "hsl", "hsla":
             guard n == 3 || n == 4 else { return nil }
@@ -81,7 +81,7 @@ enum ColorMath {
         return (v, pct)
     }
 
-    private static func clamp255(_ x: Double) -> Int { Int(min(max(x.rounded(), 0), 255)) }
+    private static func clamp255(_ x: Double) -> Int { x.isNaN ? 0 : Int(min(max(x.rounded(), 0), 255)) }
 
     // MARK: to / from spaces
 
@@ -210,7 +210,7 @@ enum ColorMath {
         switch space {
         case "hex":
             var s = String(format: "#%02x%02x%02x", c.r, c.g, c.b)
-            if hasAlpha { s += String(format: "%02x", Int((c.a * 255).rounded())) }
+            if hasAlpha { s += String(format: "%02x", clamp255(c.a * 255)) }
             return s
         case "rgb", "rgba":
             return hasAlpha || space == "rgba" ? "rgba(\(c.r), \(c.g), \(c.b), \(alpha))" : "rgb(\(c.r), \(c.g), \(c.b))"

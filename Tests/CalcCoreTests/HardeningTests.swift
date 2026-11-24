@@ -130,3 +130,39 @@ final class TimeWiringTests: XCTestCase {
         }
     }
 }
+
+final class ReviewTwoTests: XCTestCase {
+    private func run(_ q: String) async -> [String] {
+        let s = Settings(environment: ["time_zone": "America/New_York"])
+        let ctx = Context(settings: s, now: Date(timeIntervalSince1970: 1_795_488_030), dataDir: URL(fileURLWithPath: NSTemporaryDirectory()))
+        return await Engine(tools: DefaultEngine.tools(settings: s)).run(q, context: ctx).items.map(\.title)
+    }
+
+    func testColourHostileNumbersDoNotCrash() async {
+        for q in ["lab(1e200 0 0)", "lab(1e308 1e308 1e308)", "xyz(1e308 0 0)", "lch(1e308 1e308 1e308)", "rgb(1e999, 0, 0)", "hsl(nan, 1, 1)"] {
+            _ = await run(q)
+        }
+    }
+
+    func testPercentRgbRoundsLikeCSS() async {
+        let r = await run("rgb(50%,50%,50%) to hex")
+        XCTAssertEqual(r, ["#808080"])
+        let r2 = await run("rgb(90%,0%,0%) to rgb")
+        XCTAssertEqual(r2, ["rgb(230, 0, 0)"])
+    }
+
+    func testTimeOfDayBeatsPicometrePint() async {
+        let r = await run("3pm in PT")
+        XCTAssertFalse(r.isEmpty)
+        XCTAssertFalse(r.contains { $0.contains("Error") }, "got \(r)")
+    }
+
+    func testUnitsStillWinForRealUnits() async {
+        let a = await run("10 min to sec")
+        XCTAssertEqual(a, ["600 seconds"])
+        let b = await run("2 weeks to days")
+        XCTAssertEqual(b, ["14 days"])
+        let c = await run("5 pm to nm")
+        XCTAssertTrue(c.allSatisfy { !$0.contains("PM") }, "got \(c)")
+    }
+}

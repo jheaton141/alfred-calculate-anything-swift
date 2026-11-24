@@ -6,8 +6,8 @@ public enum DefaultEngine {
         var time = TimeOptions()
         if let id = settings.timezone, let zone = TimeZone(identifier: id) { time.zone = zone }
         if let format = settings.timeFormat { time.formats = [format] }
-        return [VatTool(), PercentageTool(), PxEmRemTool(), DataStorageTool(), UnitsTool(), CryptoTool(), CurrencyTool(),
-                TimeTool(options: time), ColorTool(), MathTool()]
+        return [VatTool(), PercentageTool(), PxEmRemTool(), DataStorageTool(), TimeTool(options: time), UnitsTool(), CryptoTool(),
+                CurrencyTool(), ColorTool(), MathTool()]
     }
 
     /// Where cached rates and settings live: alfred_workflow_data, else ./.data next to the working directory.
