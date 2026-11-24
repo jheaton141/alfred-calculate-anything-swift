@@ -54,8 +54,11 @@ public enum NumberFormat {
     private static func normalizedDigits(_ t: String, settings: Settings) -> String? {
         guard !t.isEmpty, t.allSatisfy({ $0.isASCII && ($0.isNumber || $0 == "." || $0 == ",") }) else { return nil }
         func isGrouped(_ parts: [Substring]) -> Bool {
-            guard let first = parts.first, (1...3).contains(first.count) else { return false }
-            return parts.dropFirst().allSatisfy { $0.count == 3 }
+            guard let first = parts.first, parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) }), let last = parts.last, parts.count > 1 else { return false }
+            let western = (1...3).contains(first.count) && parts.dropFirst().allSatisfy { $0.count == 3 }
+            // Indian grouping: 1-2 leading digits, then pairs, then a final group of three.
+            let indian = parts.count > 2 && (1...2).contains(first.count) && last.count == 3 && parts.dropFirst().dropLast().allSatisfy { $0.count == 2 }
+            return western || indian
         }
         let hasDot = t.contains("."), hasComma = t.contains(",")
         if !hasDot && !hasComma { return t }
@@ -69,6 +72,7 @@ public enum NumberFormat {
         let sep: Character = hasDot ? "." : ","
         let parts = t.split(separator: sep, omittingEmptySubsequences: false)
         if parts.count > 2 { return isGrouped(parts) ? parts.joined() : nil }
+        if parts[1].count > 3, sep == settings.thousandsSeparator { return nil }
         if parts[1].count == 3, sep == settings.thousandsSeparator, isGrouped(parts) { return parts.joined() }
         return parts[0] + "." + parts[1]
     }

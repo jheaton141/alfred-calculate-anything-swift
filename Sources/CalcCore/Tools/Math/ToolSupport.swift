@@ -8,7 +8,7 @@ enum ToolSupport {
 
     /// Rewrites "5 lakh", "1.5 crore" (lac, lakhs, crores) as plain numbers: "5 lakh usd" becomes "500000 usd".
     static func expandIndianMultipliers(_ query: String, settings: Settings) -> String {
-        let pattern = "(?<![\\w.,])(\\d+(?:[.,]\\d+)*|[.,]\\d+)\\s*(lakhs?|lacs?|crores?)(?![\\p{L}\\d])"
+        let pattern = "(?<![\\w.,#:])(\\d+(?:[.,]\\d+)*|[.,]\\d+)\\s*(lakhs?|lacs?|crores?)(?![\\p{L}\\d])"
         guard let re = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return query }
         var out = query
         let ns = query as NSString

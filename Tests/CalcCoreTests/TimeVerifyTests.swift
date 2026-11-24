@@ -143,16 +143,16 @@ final class TimeVerifyTests: XCTestCase {
     func testLocalisedUntilSince() {
         let esUntil = run("days until 2026-11-24", lang: "es_ES")?.first
         XCTAssertEqual(esUntil?.title, "1 día")
-        XCTAssertEqual(esUntil?.subtitle, "días faltantes hasta el 2026-11-24")
+        XCTAssertEqual(esUntil?.subtitle, "días faltantes hasta el 24 de noviembre de 2026")
         let esSince = run("days since 2026-11-01", lang: "es_ES")?.first
         XCTAssertEqual(esSince?.title, "22 días")
-        XCTAssertEqual(esSince?.subtitle, "días desde el 2026-11-01")
+        XCTAssertEqual(esSince?.subtitle, "días desde el 1 de noviembre de 2026")
         let svUntil = run("days until 2026-11-24", lang: "sv_SE")?.first
         XCTAssertEqual(svUntil?.title, "1 dag")
-        XCTAssertEqual(svUntil?.subtitle, "dagar till 2026-11-24")
+        XCTAssertEqual(svUntil?.subtitle, "dagar till 24 november 2026")
         let svSince = run("days since 2026-11-01", lang: "sv_SE")?.first
         XCTAssertEqual(svSince?.title, "22 dagar")
-        XCTAssertEqual(svSince?.subtitle, "dagar sedan 2026-11-01")
+        XCTAssertEqual(svSince?.subtitle, "dagar sedan 1 november 2026")
         XCTAssertEqual(run("weeks until 2026-12-15", lang: "sv_SE")?.first?.title, "3 veckor")
         XCTAssertEqual(run("days until 2026-11-22", lang: "es_ES")?.first?.title, "hace 1 día")
     }

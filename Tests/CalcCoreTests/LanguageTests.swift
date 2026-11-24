@@ -46,7 +46,7 @@ final class LanguageTests: XCTestCase {
 
 final class SinceSubtitleTests: XCTestCase {
     func testSinceUsesItsOwnSubtitle() {
-        for (lang, want) in [("en_EN", "days since 1 january"), ("es_ES", "días desde el 1 january"), ("sv_SE", "dagar sedan 1 january")] {
+        for (lang, want) in [("en_EN", "days since 1 january"), ("es_ES", "días desde el 1 de enero de 2026"), ("sv_SE", "dagar sedan 1 januari 2026")] {
             var s = Settings(); s.language = lang
             let ctx = Context(settings: s, strings: Strings.load(lang), dataDir: FileManager.default.temporaryDirectory)
             let sem = DispatchSemaphore(value: 0)

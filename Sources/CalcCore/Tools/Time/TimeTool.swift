@@ -4,7 +4,9 @@ import Foundation
 public struct TimeOptions {
     public var zone: TimeZone
     public var formats: [String]
-    public init(zone: TimeZone = .current, formats: [String] = ["F jS, Y, g:i:s a"]) {
+    /// The shipped format, replaced by the language pack's own long date format when a pack defines one.
+    public static let defaultFormat = "F jS, Y, g:i:s a"
+    public init(zone: TimeZone = .current, formats: [String] = [TimeOptions.defaultFormat]) {
         self.zone = zone; self.formats = formats
     }
 }
@@ -24,12 +26,14 @@ public struct TimeTool: Tool {
         let context: Context
         let parser: DateParser
         let zone: TimeZone
-        var now: Date { context.now }
+        /// The clock truncated to whole seconds, so relative phrases never show a 59-second remainder.
+        let now: Date
         var strings: Strings { context.strings }
     }
 
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
-        let x = Env(context: context, parser: DateParser(zone: options.zone, now: context.now), zone: options.zone)
+        let now = Date(timeIntervalSince1970: context.now.timeIntervalSince1970.rounded(.down))
+        let x = Env(context: context, parser: DateParser(zone: options.zone, now: now), zone: options.zone, now: now)
         let q0 = ToolSupport.normalize(query)
         let explicit = q0 == "time" || q0.hasPrefix("time ")
         guard q0.count <= Self.maxQueryLength else { return explicit ? [invalid(x)] : nil }
@@ -82,7 +86,8 @@ public struct TimeTool: Tool {
         let iso = TimeCal.iso(date, x.zone)
         var items: [AlfredItem] = []
         for f in options.formats {
-            let pattern = f.trimmingCharacters(in: .whitespaces)
+            var pattern = f.trimmingCharacters(in: .whitespaces)
+            if pattern == TimeOptions.defaultFormat { pattern = ToolSupport.tr(x.strings, "date_long_format", pattern) }
             let text = DatePattern.format(pattern, date, x.zone, x.strings)
             items.append(row(text, String(format: ToolSupport.tr(x.strings, "format_subtitle", "Format %@"), pattern), raw: iso, x))
         }
@@ -101,6 +106,10 @@ public struct TimeTool: Tool {
     // MARK: unix timestamps
 
     private func timestampQuery(_ q: String, explicit: Bool, _ x: Env) -> [AlfredItem]? {
+        if let g = ToolSupport.match(#"@?([+-]?\d+(?:\.\d+)?e[+-]?\d{1,2})"#, in: q), q.hasPrefix("@") || explicit,
+           let n = Double(g[0]), n == n.rounded(), abs(n) < 1e14 {
+            return dateRows(Date(timeIntervalSince1970: String(Int(abs(n))).count == 13 ? n / 1000 : n), isNow: false, x)
+        }
         if let g = ToolSupport.match(#"@?(-?\d+)"#, in: q) {
             let digits = g[0].replacingOccurrences(of: "-", with: "")
             let isBare = q.hasPrefix("@") || explicit || digits.count == 10 || digits.count == 13
@@ -108,7 +117,7 @@ public struct TimeTool: Tool {
             let seconds = digits.count == 13 ? n / 1000 : n
             return dateRows(Date(timeIntervalSince1970: seconds), isNow: false, x)
         }
-        if let g = ToolSupport.match(#"(-?\d+)\s+(?:to|in|as)\s+(?:a\s+)?date"#, in: q), let n = Double(g[0]), abs(n) < 1e11 {
+        if let g = ToolSupport.match(#"([+-]?\d+(?:\.\d+)?(?:e[+-]?\d{1,2})?)\s+(?:to|in|as)\s+(?:a\s+)?date"#, in: q), let n = Double(g[0]), n == n.rounded(), abs(n) < 1e11 {
             return dateRows(Date(timeIntervalSince1970: n), isNow: false, x)
         }
         var source: String?
@@ -187,9 +196,11 @@ public struct TimeTool: Tool {
         let ago = until && diff < 0
         let title = ago ? agoText(plural(n, unit, x), x) : plural(n, unit, x)
         let unitWord = x.strings["unit_\(requested)s"]
+        let dateOnly = x.strings["date_only_format"]
+        let echo = dateOnly.isEmpty || dateOnly == "date_only_format" ? g[2] : DatePattern.format(dateOnly, target.date, x.zone, x.strings)
         let sub = until
-            ? String(format: ToolSupport.tr(x.strings, "until_subtitle", "%@ until %@"), unitWord, g[2])
-            : String(format: ToolSupport.tr(x.strings, "since_subtitle", "%@ since %@"), unitWord, g[2])
+            ? String(format: ToolSupport.tr(x.strings, "until_subtitle", "%@ until %@"), unitWord, echo)
+            : String(format: ToolSupport.tr(x.strings, "since_subtitle", "%@ since %@"), unitWord, echo)
         return [row(title, sub, copy: String(n), raw: String(n), x)]
     }
 

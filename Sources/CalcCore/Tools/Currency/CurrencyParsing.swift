@@ -9,7 +9,7 @@ struct ParsedConversion {
 /// Splits "100 usd to eur, gbp" style queries into amount, source and targets.
 enum ConversionParser {
     private static let stopRegex = try! NSRegularExpression(pattern: "(?<![\\p{L}])(?:to|in|as)(?![\\p{L}])|=", options: .caseInsensitive)
-    private static let numberRegex = try! NSRegularExpression(pattern: "[-+]?\\d[\\d.,]*")
+    private static let numberRegex = try! NSRegularExpression(pattern: "[-+]?\\d[\\d.,]*(?:[eE][-+]?\\d+)?")
     private static let suffixes: [Character: Double] = ["k": 1e3, "m": 1e6, "b": 1e9, "t": 1e12]
 
     static func parse(_ query: String, settings: Settings, resolve: (String) -> CurrencyUnit?) -> ParsedConversion? {

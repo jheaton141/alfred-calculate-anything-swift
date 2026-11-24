@@ -78,7 +78,7 @@ struct DateParser {
 
     /// "3 days", "+2 weeks", "- 1 month", "an hour"; every term needs a sign when `signed`, none may have one otherwise.
     func parseTerms(_ text: String, signed: Bool) -> [TimeTerm]? {
-        let pattern = #"(?<![a-z0-9.])(?:(\+|-|plus|minus)\s*)?(?:(\d+(?:\.\d+)?)\s*|(an?|one)\s+)("# + Self.unitAlt + #")\b"#
+        let pattern = #"(?<![a-z0-9.])(?:(\+|-|plus|minus)\s*)?(?:(\d+(?:\.\d+)?(?:e[+-]?\d{1,2})?)\s*|(an?|one)\s+)("# + Self.unitAlt + #")\b"#
         guard let re = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
         let ns = text as NSString
         let matches = re.matches(in: text, range: NSRange(location: 0, length: ns.length))
@@ -147,7 +147,7 @@ struct DateParser {
     func parse(_ raw: String, explicit: Bool) -> ParsedDate? {
         var s = raw.trimmingCharacters(in: .whitespaces).lowercased()
         if s.hasPrefix("on ") { s = String(s.dropFirst(3)) }
-        let termPattern = #"(?:\s*(?:\+|-|plus|minus)\s*(?:\d+(?:\.\d+)?\s*|(?:an?|one)\s+)(?:"# + Self.unitAlt + #")\b)+"#
+        let termPattern = #"(?:\s*(?:\+|-|plus|minus)\s*(?:\d+(?:\.\d+)?(?:e[+-]?\d{1,2})?\s*|(?:an?|one)\s+)(?:"# + Self.unitAlt + #")\b)+"#
         if let g = ToolSupport.match("(.*?)(" + termPattern + ")", in: s) {
             let base = g[0].trimmingCharacters(in: .whitespaces)
             guard let terms = parseTerms(g[1], signed: true) else { return nil }

@@ -19,7 +19,7 @@ final class VerifyFixMathTests: XCTestCase {
 
     func testMalformedSeparatorsRejected() {
         let s = Settings()
-        for t in ["0.1.2", "1..2", "1,,2", "1,2,3", "1,234.5.6", "1.2,3,4", "12,34,567", "1,23.4"] {
+        for t in ["0.1.2", "1..2", "1,,2", "1,2,3", "1,234.5.6", "1.2,3,4", "1,23.4"] {
             XCTAssertNil(NumberFormat.parse(t, settings: s), t)
         }
         for q in ["0.1.2+1", "1..2+1", "1,,2+1", "1,2,3+1"] { XCTAssertNil(math(q), q) }

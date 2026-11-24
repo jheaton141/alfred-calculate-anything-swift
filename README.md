@@ -6,7 +6,7 @@ Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter
 
 ## What changed from upstream
 
-- **No runtime to install.** One universal (Apple silicon and Intel) `calc` binary, about 1.6 MB.
+- **No runtime to install.** One universal (Apple silicon and Intel) `calc` binary, under 2 MB.
 - **No API keys.** Fiat rates come from [Frankfurter](https://frankfurter.dev) and [fawazahmed0/currency-api](https://github.com/fawazahmed0/exchange-api). Crypto prices come from CoinGecko, with Coinbase spot as the fallback.
 - **Works offline.** Rates are cached on disk. If every source is down, the last cached rates are shown and labelled as stale.
 - **Fixed upstream bugs:** Fahrenheit to Celsius and Celsius to Kelvin, the UK gallon, millilitres to ounces, VAT rounding, a stray extra row for feet and inches, and doubled spaces in time units.
@@ -41,6 +41,10 @@ Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter
 
 Rates are stored in the workflow's data folder (`alfred_workflow_data`). Outside Alfred the binary uses `./.data`. To clear the cache, delete `rates-*.json` there, or use the `_caclear` keyword.
 
+## Keywords
+
+Alfred only runs a workflow for a typed query when a keyword matches. A query that starts with a digit, `.` or `-` always works. For anything else the workflow defines these keywords, which are typed as part of the query: `calc` (or `=`) plus any text, `#`, `(`, `%`, `vat`, `time`, `what`, `days`, `contrast`, `lighten`, `darken`, `rgb`, `hsl`, `hsv`, `hwb`, `cmyk`, `lab`, `lch`, `xyz`, and the functions `sqrt`, `abs`, `round`, `floor`, `ceil`, `ln`, `log`, `sin`, `cos`, `tan`, `exp`. Anything else needs the `calc` prefix, for example `calc 100 usd to eur`. `_caclear` clears the rates cache.
+
 ## Configuration
 
 Open the workflow's configuration panel in Alfred. The same names work as environment variables when you run the binary yourself.
@@ -66,7 +70,7 @@ English, Spanish and Swedish packs for the result text are built into the binary
 
 ```sh
 swift build
-swift test                   # 205 tests; set RUN_LIVE=1 to include the live-network test
+swift test                   # 220 tests; set RUN_LIVE=1 to include the live-network test
 ./.build/debug/calc "20% of 150"
 Tests/golden/compare.sh      # compares the Swift output with recorded upstream outputs over a query corpus
 ```
@@ -81,6 +85,7 @@ The golden corpus in `Tests/golden/` holds outputs recorded from the upstream wo
 - Dates beyond about year 200,000 return "not a valid date".
 - Month arithmetic clamps to the last day of the month (`2025-01-31 + 1 month` is Feb 28; upstream gives Mar 3).
 - Bare 10- or 13-digit numbers are read as timestamps, as upstream does.
+- Unit conversions show at least 8 decimals regardless of `decimals`, so small results keep their precision.
 - Lab and lch print two decimals, so converting them back may differ by one in the last digit.
 
 ## License

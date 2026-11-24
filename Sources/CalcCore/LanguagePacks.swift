@@ -60,7 +60,18 @@ enum LanguagePacks {
       "color_contrast_sub": "AA %@, AA large %@, AAA %@, AAA large %@",
       "color_composited": "alpha composited over the background",
       "color_lightened": "lightened by",
-      "color_darkened": "darkened by"
+      "color_darkened": "darkened by",
+      "error_radix_invalid": "Enter a whole number from 0 to 18446744073709551615",
+      "radix_binary": "binary",
+      "radix_octal": "octal",
+      "radix_decimal": "decimal",
+      "radix_hex": "hex",
+      "radix_subtitle": "%@ %@ → %@",
+      "radix_copy_prefix": "Copy with %@ prefix",
+      "radix_copy_no_prefix": "Copy with no prefix",
+      "date_ordinals": "1",
+      "date_long_format": "F jS, Y, g:i:s a",
+      "date_only_format": ""
     }
     """#
 
@@ -68,7 +79,7 @@ enum LanguagePacks {
     {
       "copy_number": "Presiona enter para copiar el valor al clipboard",
       "copy_raw": "Presiona enter para copiar el valor al clipboard sin formato",
-      "copy_with_unit": "Presiona enter para copiar el valor al clipboard con formato completo",
+      "copy_with_unit": "Presiona enter para copiar el valor al clipboard con unidad",
       "error_div_zero": "No se puede dividir entre cero",
       "error_math_domain": "Entrada no válida",
       "vat_result": "IVA de %@ = %@",
@@ -116,11 +127,22 @@ enum LanguagePacks {
       "unit_second": "segundo",
       "unit_seconds": "segundos",
       "color_pass": "aprobado",
-      "color_fail": "suspenso",
+      "color_fail": "no cumple",
       "color_contrast_sub": "AA %@, AA grande %@, AAA %@, AAA grande %@",
       "color_composited": "alfa compuesto sobre el fondo",
       "color_lightened": "aclarado en",
-      "color_darkened": "oscurecido en"
+      "color_darkened": "oscurecido en",
+      "error_radix_invalid": "Ingresa un número entero de 0 a 18446744073709551615",
+      "radix_binary": "binario",
+      "radix_octal": "octal",
+      "radix_decimal": "decimal",
+      "radix_hex": "hexadecimal",
+      "radix_subtitle": "%@ %@ → %@",
+      "radix_copy_prefix": "Copiar con prefijo %@",
+      "radix_copy_no_prefix": "Copiar sin prefijo",
+      "date_ordinals": "0",
+      "date_long_format": "j \\d\\e F \\d\\e Y, H:i:s",
+      "date_only_format": "j \\d\\e F \\d\\e Y"
     }
     """#
 
@@ -180,7 +202,18 @@ enum LanguagePacks {
       "color_contrast_sub": "AA %@, AA stor %@, AAA %@, AAA stor %@",
       "color_composited": "alfa sammansatt över bakgrunden",
       "color_lightened": "ljusare med",
-      "color_darkened": "mörkare med"
+      "color_darkened": "mörkare med",
+      "error_radix_invalid": "Ange ett heltal från 0 till 18446744073709551615",
+      "radix_binary": "binärt",
+      "radix_octal": "oktalt",
+      "radix_decimal": "decimalt",
+      "radix_hex": "hex",
+      "radix_subtitle": "%@ %@ → %@",
+      "radix_copy_prefix": "Kopiera med prefixet %@",
+      "radix_copy_no_prefix": "Kopiera utan prefix",
+      "date_ordinals": "0",
+      "date_long_format": "j F Y, H:i:s",
+      "date_only_format": "j F Y"
     }
     """#
 }

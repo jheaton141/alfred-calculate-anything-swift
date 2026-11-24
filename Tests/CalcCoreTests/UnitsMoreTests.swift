@@ -26,7 +26,7 @@ final class UnitsMoreTests: XCTestCase {
     func testTonStaysAndNonUnitsAreNotUnits() async {
         var got = await first("1 ton to usd"); XCTAssertNil(got)
         got = await first("1 link to usd"); XCTAssertNil(got)
-        got = await first("1 ton to ukt"); XCTAssertEqual(got, "0.89285714 ukt")
+        got = await first("1 ton to ukt"); XCTAssertEqual(got, "0.89285714 long ton")
     }
 
     func testScientificNotationInUnits() async {

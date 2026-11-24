@@ -176,6 +176,7 @@ enum DatePattern {
             case "l": out += days[wd - 1]
             case "N": out += String((wd + 5) % 7 + 1)
             case "S":
+                guard strings["date_ordinals"] != "0" else { break }
                 let suffix = (11...13).contains(d % 100) ? "th" : (d % 10 == 1 ? "st" : d % 10 == 2 ? "nd" : d % 10 == 3 ? "rd" : "th")
                 out += suffix
             case "w": out += String(wd - 1)

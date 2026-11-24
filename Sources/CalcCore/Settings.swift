@@ -20,13 +20,14 @@ public struct Settings: Equatable {
 
     public init() {}
 
-    public init(environment env: [String: String]) {
+    public init(environment rawEnv: [String: String]) {
         self.init()
+        let env = rawEnv.mapValues { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         if let v = env["decimals"].flatMap(Int.init) { decimals = min(max(v, 0), 12) }
         if let v = env["decimal_separator"], v == "," { decimalSeparator = ","; thousandsSeparator = "." }
         if let v = env["base_currency"], !v.isEmpty { baseCurrency = v.uppercased() }
         if let v = env["currency_cache_hours"].flatMap(Double.init) { fiatCacheHours = v }
-        if let v = (env["base_pixels"] ?? env["pixels_base"]).flatMap(Double.init) { basePixels = v }
+        if let v = (env["base_pixels"] ?? env["pixels_base"]).flatMap(Double.init), v.isFinite, (1e-6...1e6).contains(v) { basePixels = v }
         if let v = (env["vat_percentage"] ?? env["vat_value"]).flatMap(Self.parseVatPercentage) { vatPercentage = v }
         if let v = env["number_grouping"]?.lowercased(), let g = NumberGrouping(rawValue: v) { numberGrouping = g }
         if let v = env["language"], !v.isEmpty { language = v }

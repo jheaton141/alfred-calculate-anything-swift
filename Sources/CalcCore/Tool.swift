@@ -25,8 +25,9 @@ public struct Engine {
     public init(tools: [Tool]) { self.tools = tools }
 
     public func run(_ rawQuery: String, context: Context) async -> AlfredOutput {
-        let q = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return AlfredOutput() }
+        let trimmed = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return AlfredOutput() }
+        let q = ToolSupport.expandIndianMultipliers(trimmed, settings: context.settings)
         for tool in tools {
             if let items = await tool.evaluate(q, context: context) { return AlfredOutput(items: items) }
         }
