@@ -26,7 +26,12 @@ enum LanguagePacks {
       "notvalid_subtitle": "Enter a valid date",
       "format_subtitle": "Format %@",
       "rates_unavailable": "Exchange rates unavailable",
-      "cached_rates_from": "cached rates from"
+      "cached_rates_from": "cached rates from",
+      "change_increase": "increase from %@ to %@",
+      "change_decrease": "decrease from %@ to %@",
+      "change_none": "no change from %@ to %@",
+      "total_days": "Total days",
+      "total_hours": "Total hours"
     }
     """#
 
@@ -52,7 +57,12 @@ enum LanguagePacks {
       "notvalid_subtitle": "Ingresa una fecha válida",
       "format_subtitle": "Formato %@",
       "rates_unavailable": "Tipos de cambio no disponibles",
-      "cached_rates_from": "tipos en caché del"
+      "cached_rates_from": "tipos en caché del",
+      "change_increase": "aumento de %@ a %@",
+      "change_decrease": "disminución de %@ a %@",
+      "change_none": "sin cambio de %@ a %@",
+      "total_days": "Total de días",
+      "total_hours": "Total de horas"
     }
     """#
 
@@ -78,7 +88,12 @@ enum LanguagePacks {
       "notvalid_subtitle": "Fyll i ett korrekt datum",
       "format_subtitle": "Formatera %@",
       "rates_unavailable": "Växelkurser otillgängliga",
-      "cached_rates_from": "cachade kurser från"
+      "cached_rates_from": "cachade kurser från",
+      "change_increase": "ökning från %@ till %@",
+      "change_decrease": "minskning från %@ till %@",
+      "change_none": "ingen förändring från %@ till %@",
+      "total_days": "Totalt antal dagar",
+      "total_hours": "Totalt antal timmar"
     }
     """#
 }

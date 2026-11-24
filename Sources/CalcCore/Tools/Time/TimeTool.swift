@@ -174,8 +174,8 @@ public struct TimeTool: Tool {
             let hours = Int(e.timeIntervalSince(s) / 3600)
             let sub = String(format: ToolSupport.tr(x.strings, "difference_subtitle", "Time difference between %@ and %@"), plainDate(a, x), plainDate(b, x))
             return [row(span(a, b, x), sub, raw: String(Int(e.timeIntervalSince(s))), x),
-                    row(plural(days, "day"), "Total days", copy: String(days), raw: String(days), x),
-                    row(plural(hours, "hour"), "Total hours", copy: String(hours), raw: String(hours), x)]
+                    row(plural(days, "day"), ToolSupport.tr(x.strings, "total_days", "Total days"), copy: String(days), raw: String(days), x),
+                    row(plural(hours, "hour"), ToolSupport.tr(x.strings, "total_hours", "Total hours"), copy: String(hours), raw: String(hours), x)]
         }
         return nil
     }

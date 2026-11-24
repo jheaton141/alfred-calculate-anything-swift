@@ -61,8 +61,10 @@ public struct PercentageTool: Tool {
         let pct = (b - a) / abs(a) * 100
         let shown = ToolSupport.fmt(abs(pct), c.settings)
         let sign = pct > 0 ? "+" : (pct < 0 ? "-" : "")
-        let word = pct > 0 ? "increase" : (pct < 0 ? "decrease" : "no change")
-        let title = "\(sign)\(shown)% (\(word) from \(ToolSupport.fmt(a, c.settings)) to \(ToolSupport.fmt(b, c.settings)))"
+        let key = pct > 0 ? "change_increase" : (pct < 0 ? "change_decrease" : "change_none")
+        let fallback = pct > 0 ? "increase from %@ to %@" : (pct < 0 ? "decrease from %@ to %@" : "no change from %@ to %@")
+        let detail = String(format: ToolSupport.tr(c.strings, key, fallback), ToolSupport.fmt(a, c.settings), ToolSupport.fmt(b, c.settings))
+        let title = "\(sign)\(shown)% (\(detail))"
         return .value(title: title, copy: "\(sign)\(shown)%", raw: ToolSupport.raw(pct), strings: c.strings)
     }
 
