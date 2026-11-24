@@ -1,6 +1,6 @@
 import Foundation
 
-/// VAT amounts at the configured rate: "vat 100", "100 vat", "121 with vat", "100 + vat", "100 - vat".
+/// VAT amounts at the configured rate or one given in the query: "vat 100", "100 vat", "121 with vat", "100 + vat", "vat 100 at 21%", "100 vat 5".
 public struct VatTool: Tool {
     public let name = "vat"
     public init() {}
@@ -12,32 +12,42 @@ public struct VatTool: Tool {
         var mode = Mode.all
         let n = "(\(ToolSupport.number))"
         var amountText: String?
+        var rateText: String?
+        // optional per-query rate: "5", "5%", "at 5%", "@ 5", "rate 5"
+        let rate = "(?:\\s+(?:at|@|rate|rate of)?\\s*(\(ToolSupport.number))\\s*%?)?"
 
         if q == "vat" { return [Self.hint(context)] }
         if q.hasPrefix("vat ") {
             let rest = String(q.dropFirst(4))
             let pattern = "\(n)(?:\\s*(?:\\+|-|plus|minus|with|without|incl\\.?|excl\\.?|inc|exc|ex)?\\s*(?:of\\s+)?(?:vat)?)?"
-            guard let g = ToolSupport.match(pattern, in: rest) else { return nil }
-            amountText = g[0]
-        } else if let g = ToolSupport.match("\(n)\\s*(\\+|plus|with|incl\\.?|inc)\\s*vat", in: q) {
-            amountText = g[0]; mode = .plus
-        } else if let g = ToolSupport.match("\(n)\\s*(-|minus|without|excl\\.?|exc|ex)\\s*vat", in: q) {
-            amountText = g[0]; mode = .minus
-        } else if let g = ToolSupport.match("\(n)\\s*vat", in: q) {
-            amountText = g[0]
+            if let g = ToolSupport.match(pattern, in: rest) { amountText = g[0] }
+            else if let g = ToolSupport.match("\(n)\\s*(?:\\+|plus|with|incl\\.?|inc)?\\s*\(rate)", in: rest), !g[1].isEmpty {
+                amountText = g[0]; rateText = g[1]
+            } else { return nil }
+        } else if let g = ToolSupport.match("\(n)\\s*(\\+|plus|with|incl\\.?|inc)\\s*vat\(rate)", in: q) {
+            amountText = g[0]; mode = .plus; rateText = g[2].isEmpty ? nil : g[2]
+        } else if let g = ToolSupport.match("\(n)\\s*(-|minus|without|excl\\.?|exc|ex)\\s*vat\(rate)", in: q) {
+            amountText = g[0]; mode = .minus; rateText = g[2].isEmpty ? nil : g[2]
+        } else if let g = ToolSupport.match("\(n)\\s*vat\(rate)", in: q) {
+            amountText = g[0]; rateText = g[1].isEmpty ? nil : g[1]
         }
         guard let text = amountText, let amount = NumberFormat.parse(text, settings: context.settings) else { return nil }
         if amount == 0 { return [Self.hint(context)] }
 
         let str = context.strings
-        let p = context.settings.vatPercentage.isFinite && context.settings.vatPercentage > -100 ? context.settings.vatPercentage : 16
+        var p = context.settings.vatPercentage.isFinite && context.settings.vatPercentage > -100 ? context.settings.vatPercentage : 16
+        if let r = rateText {
+            guard let v = NumberFormat.parse(r, settings: context.settings), v.isFinite, v > -100, v <= 1_000 else { return [ToolSupport.invalidInput(str)] }
+            p = v
+        }
         let vat = amount * p / 100
         let plus = amount + vat
         let minus = amount / (1 + p / 100)
         guard [vat, plus, minus].allSatisfy({ $0.isFinite }) else { return [ToolSupport.invalidInput(str)] }
         // one precision for every figure so the amounts agree with each other
         let s = ToolSupport.displaySettings([amount, vat, plus, minus], context.settings)
-        let pct = NumberFormat.plain(p, decimals: 4) + "%"
+        var pct = NumberFormat.plain(p, decimals: 4) + "%"
+        if context.settings.decimalSeparator != "." { pct = pct.replacingOccurrences(of: ".", with: String(context.settings.decimalSeparator)) }
         let a = ToolSupport.show(amount, s)
 
         func row(_ title: String, _ subtitle: String, _ value: Double) -> AlfredItem {

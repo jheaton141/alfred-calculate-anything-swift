@@ -41,7 +41,7 @@ final class TimeTests: XCTestCase {
     func testNowInCityAndTimeIn() {
         let r = run("now in sydney")
         XCTAssertEqual(r?.map(\.title), ["02:30 AEDT (Tue 24 Nov)"])
-        XCTAssertEqual(r?[0].subtitle, "Now: 10:30 EST (Mon 23 Nov)")
+        XCTAssertEqual(r?[0].subtitle, "Now: 10:30 EST (Mon 23 Nov); AEDT is daylight saving time (UTC+11:00)")
         XCTAssertEqual(titles("time in paris"), ["16:30 CET (Mon 23 Nov)"])
         XCTAssertEqual(titles("what time is it in tokyo"), ["00:30 JST (Tue 24 Nov)"])
         XCTAssertEqual(titles("tokyo time"), ["00:30 JST (Tue 24 Nov)"])

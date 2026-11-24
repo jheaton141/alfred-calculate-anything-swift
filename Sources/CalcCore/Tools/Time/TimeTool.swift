@@ -4,6 +4,8 @@ import Foundation
 public struct TimeOptions {
     public var zone: TimeZone
     public var formats: [String]
+    /// The timezone setting when it names no known zone; results then carry a warning row.
+    public var invalidZone: String?
     /// The shipped format, replaced by the language pack's own long date format when a pack defines one.
     public static let defaultFormat = "F jS, Y, g:i:s a"
     public init(zone: TimeZone = .current, formats: [String] = [TimeOptions.defaultFormat]) {
@@ -32,6 +34,15 @@ public struct TimeTool: Tool {
     }
 
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
+        guard let items = run(query, context: context) else { return nil }
+        guard let bad = options.invalidZone else { return items }
+        let warning = AlfredItem(title: ToolSupport.tr(context.strings, "zone_setting_invalid", "Invalid time zone setting"),
+                                 subtitle: String(format: ToolSupport.tr(context.strings, "zone_setting_invalid_sub", "'%@' is not a known time zone; using %@. Fix it in the workflow configuration."), bad, options.zone.identifier),
+                                 arg: "", valid: false)
+        return [warning] + items
+    }
+
+    private func run(_ query: String, context: Context) -> [AlfredItem]? {
         let now = Date(timeIntervalSince1970: context.now.timeIntervalSince1970.rounded(.down))
         let x = Env(context: context, parser: DateParser(zone: options.zone, now: now), zone: options.zone, now: now)
         let q0 = ToolSupport.normalize(query)
@@ -233,11 +244,11 @@ public struct TimeTool: Tool {
     private func zoneQuery(_ q0: String, _ x: Env) -> [AlfredItem]? {
         var q = q0
         if let g = ToolSupport.match(#"(?:what(?:'s| is)?\s+(?:the\s+)?)?(?:current\s+)?time(?:\s+is\s+it)?\s+(?:in|at)\s+(.+)"#, in: q) {
-            return convert(instant: x.now, src: ResolvedZone(zone: x.zone), isNow: true, targets: g[0], x)
+            return convert(instant: x.now, src: ResolvedZone(zone: x.zone), isNow: true, targets: g[0], explicit: true, x)
         }
         if q.hasPrefix("time ") { q = String(q.dropFirst(5)) }
         if let g = ToolSupport.match(#"(.+?)\s+time"#, in: q), ZoneResolver.resolve(g[0]) != nil {
-            return convert(instant: x.now, src: ResolvedZone(zone: x.zone), isNow: true, targets: g[0], x)
+            return convert(instant: x.now, src: ResolvedZone(zone: x.zone), isNow: true, targets: g[0], explicit: true, x)
         }
         guard let re = try? NSRegularExpression(pattern: #"\s+(?:in|to|into)\s+|\s*->\s*"#),
               let m = re.firstMatch(in: q, range: NSRange(location: 0, length: (q as NSString).length)) else { return nil }
@@ -247,6 +258,7 @@ public struct TimeTool: Tool {
         var srcZone = ResolvedZone(zone: x.zone)
         var instant = x.now
         var isNow = false
+        var srcNote: String?
         if left == "now" {
             isNow = true
         } else if let g = ToolSupport.match(#"now\s+(.+)"#, in: left) {
@@ -269,18 +281,44 @@ public struct TimeTool: Tool {
             }
             guard let d = srcParser.setClock(day, clock) else { return nil }
             instant = d
+            srcNote = wallClockNote(d, requested: clock, day: day, zone: srcZone, x)
         } else {
             return nil
         }
-        return convert(instant: instant, src: srcZone, isNow: isNow, targets: right, x)
+        return convert(instant: instant, src: srcZone, isNow: isNow, targets: right, explicit: q0.hasPrefix("time "), srcNote: srcNote, x)
     }
 
-    private func convert(instant: Date, src: ResolvedZone, isNow: Bool, targets: String, _ x: Env) -> [AlfredItem]? {
+    /// A note when the typed wall time falls in a spring-forward gap or a fall-back repeat of its zone.
+    private func wallClockNote(_ d: Date, requested: (Int, Int, Int), day: Date, zone: ResolvedZone, _ x: Env) -> String? {
+        let want = TimeCal.civil(day, zone.zone), got = TimeCal.civil(d, zone.zone)
+        let typed = String(format: "%02d:%02d", requested.0, requested.1)
+        let label = ZoneResolver.label(zone, at: d)
+        if got.h != requested.0 || got.mi != requested.1 || got.d != want.d {
+            return String(format: ToolSupport.tr(x.strings, "dst_gap_note", "%@ does not exist on that day (clocks skip forward); shown as %@"), typed, "\(TimeCal.fmt("H:i", d, zone.zone, x.strings)) \(label)")
+        }
+        for gap in [1800.0, 3600.0] {
+            let later = TimeCal.civil(d.addingTimeInterval(gap), zone.zone)
+            if later.h == got.h, later.mi == got.mi, later.d == got.d {
+                return String(format: ToolSupport.tr(x.strings, "dst_repeat_note", "%@ happens twice that day (clocks go back); using the first"), typed)
+            }
+        }
+        return nil
+    }
+
+    private func convert(instant: Date, src: ResolvedZone, isNow: Bool, targets: String, explicit: Bool, srcNote: String? = nil, _ x: Env) -> [AlfredItem]? {
         let names = targets.components(separatedBy: CharacterSet(charactersIn: ",&")).flatMap { $0.components(separatedBy: " and ") }
             .map { $0.trimmingCharacters(in: .whitespaces) }
         guard !names.isEmpty, !names.contains(where: \.isEmpty) else { return nil }
         let resolved = names.compactMap { ZoneResolver.resolve($0) }
-        guard resolved.count == names.count else { return nil }
+        guard resolved.count == names.count else {
+            // a name that is neither a zone nor a date or clock is an unknown zone, not another tool's query
+            let unknown = names.filter { ZoneResolver.resolve($0) == nil && x.parser.parse($0, explicit: true) == nil && DateParser.parseClock($0) == nil }
+            let mixed = unknown.contains { $0.range(of: #"\s(?:to|in|into|until|and|-)\s|->"#, options: .regularExpression) != nil }
+            guard explicit, !mixed, unknown.count == names.count - resolved.count, !unknown.isEmpty else { return nil }
+            return [AlfredItem(title: ToolSupport.tr(x.strings, "zone_unknown", "Unknown time zone"),
+                               subtitle: String(format: ToolSupport.tr(x.strings, "zone_unknown_sub", "'%@' is not a time zone, city or abbreviation I know"), unknown.joined(separator: ", ")),
+                               arg: "", valid: false)]
+        }
 
         let srcLabel = ZoneResolver.label(src, at: instant)
         let srcText = "\(TimeCal.fmt("H:i", instant, src.zone, x.strings)) \(srcLabel) (\(TimeCal.fmt("D j M", instant, src.zone, x.strings)))"
@@ -289,7 +327,11 @@ public struct TimeTool: Tool {
             let title = "\(TimeCal.fmt("H:i", instant, t.zone, x.strings)) \(label) (\(TimeCal.fmt("D j M", instant, t.zone, x.strings)))"
             let full = "\(TimeCal.fmt("l, F j, Y H:i:s", instant, t.zone, x.strings)) \(label) (UTC\(TimeCal.offset(t.zone, instant)))"
             var sub = String(format: ToolSupport.tr(x.strings, isNow ? "zone_now" : "zone_from", isNow ? "Now: %@" : "From %@"), srcText)
-            for note in [src.note, t.note].compactMap({ $0 }) { sub += "; " + note }
+            for note in [src.note, t.note, srcNote].compactMap({ $0 }) { sub += "; " + note }
+            var seen = Set<String>()
+            for (z, l) in [(src, srcLabel), (t, label)] where z.zone.isDaylightSavingTime(for: instant) && seen.insert(l).inserted {
+                sub += "; " + String(format: ToolSupport.tr(x.strings, "dst_in_effect", "%@ is daylight saving time (UTC%@)"), l, TimeCal.offset(z.zone, instant))
+            }
             return row(title, sub, raw: TimeCal.iso(instant, t.zone), alt: full, x)
         }
     }

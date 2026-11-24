@@ -10,7 +10,7 @@ Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter
 - **No API keys.** Fiat rates come from [Frankfurter](https://frankfurter.dev) and [fawazahmed0/currency-api](https://github.com/fawazahmed0/exchange-api). Crypto prices come from CoinGecko, with Coinbase spot as the fallback.
 - **Works offline.** Rates are cached on disk. If every source is down, the last cached rates are shown and labelled as stale.
 - **Fixed upstream bugs:** Fahrenheit to Celsius and Celsius to Kelvin, the UK gallon, millilitres to ounces, VAT rounding, a stray extra row for feet and inches, and doubled spaces in time units.
-- **New:** arithmetic and functions, `k`/`M`/`B`/`T` suffixes, more units, more percentage phrasings, timezone conversion, colour contrast and lighten/darken.
+- **New:** arithmetic and functions, `k`/`M`/`B`/`T` suffixes, more units, more percentage phrasings, timezone conversion with daylight-saving notes (a time that is skipped or repeated on a clock change is flagged), a clear error for unknown zones, colour contrast and lighten/darken.
 
 ## Examples
 
@@ -23,7 +23,7 @@ Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter
 | Data storage | `2 gb to mb`, `400 MiB to kib` |
 | Percentage | `20% of 150`, `what is 20% of 150`, `150 + 20%`, `20% off 150`, `50 is what % of 200`, `20 is 10% of what`, `% change from 50 to 75` |
 | px / em / rem | `12px to em`, `1.5rem to px` |
-| VAT | `100 vat`, `vat 250` |
+| VAT | `100 vat`, `vat 250`, `vat 100 at 5%`, `100 + vat 21%` (a rate in the query overrides the setting) |
 | Time | `time +15 years`, `3pm in PT`, `9am EST to Tokyo`, `2025-01-31 + 1 month`, `days until 31 december`, `time 2026-12-25 - today`, `time 1700000000` |
 | Colour | `#ff8800`, `rgb(255,136,0)`, `hsl(32,100%,50%)`, `contrast white vs black`, `lighten #336699 20%`, `darken red 10%` |
 
@@ -59,7 +59,7 @@ Open the workflow's configuration panel in Alfred. The same names work as enviro
 | `currency_cache_hours` | `6` | How long fiat rates are reused before a refresh. |
 | `base_pixels` | `16` | Pixels per em/rem. |
 | `vat_percentage` | `16` | Default VAT rate. |
-| `timezone` | none | Zone for time answers, for example `Europe/Stockholm`. |
+| `timezone` | none | Zone for time answers, for example `Europe/Stockholm`. An unknown value adds a warning row to time answers and the system zone is used. |
 | `time_format` | `j F, Y, g:i:s a` | Date format for time answers. |
 
 ## Languages
@@ -70,7 +70,7 @@ English, Spanish and Swedish packs for the result text are built into the binary
 
 ```sh
 swift build
-swift test                   # 220 tests; set RUN_LIVE=1 to include the live-network test
+swift test                   # 236 tests; set RUN_LIVE=1 to include the live-network test
 ./.build/debug/calc "20% of 150"
 Tests/golden/compare.sh      # compares the Swift output with recorded upstream outputs over a query corpus
 ```
