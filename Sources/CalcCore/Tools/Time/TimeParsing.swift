@@ -10,9 +10,10 @@ struct ParsedDate { var date: Date; var hasTime: Bool; var yearImplicit = false 
 struct DateParser {
     let zone: TimeZone
     let now: Date
-    let cal: Calendar
 
-    init(zone: TimeZone, now: Date) { self.zone = zone; self.now = now; self.cal = TimeCal.calendar(zone) }
+    init(zone: TimeZone, now: Date) { self.zone = zone; self.now = now }
+
+    func startOfDay(_ d: Date) -> Date { TimeCal.startOfDay(d, zone) }
 
     static let unitMap: [String: TimeUnit] = [
         "second": .second, "seconds": .second, "sec": .second, "secs": .second,
@@ -62,16 +63,15 @@ struct DateParser {
     }
 
     func makeDate(_ y: Int, _ mo: Int, _ d: Int, _ h: Int = 0, _ mi: Int = 0, _ s: Int = 0, in z: TimeZone? = nil) -> Date? {
-        var c = (z.map { TimeCal.calendar($0) } ?? cal)
-        c.timeZone = z ?? zone
-        let comps = DateComponents(year: y, month: mo, day: d, hour: h, minute: mi, second: s)
-        guard let date = c.date(from: comps) else { return nil }
-        let back = c.dateComponents([.year, .month, .day], from: date)
-        return back.year == y && back.month == mo && back.day == d ? date : nil
+        guard (1...12).contains(mo), abs(y) <= 200_000, (1...TimeCal.daysInMonth(y, mo)).contains(d),
+              (0..<24).contains(h), (0..<60).contains(mi), (0..<60).contains(s) else { return nil }
+        let date = TimeCal.resolve(y, mo, d, h, mi, s, in: z ?? zone)
+        return TimeCal.inRange(date) ? date : nil
     }
 
     func setClock(_ day: Date, _ clock: (Int, Int, Int)) -> Date? {
-        cal.date(bySettingHour: clock.0, minute: clock.1, second: clock.2, of: cal.startOfDay(for: day))
+        let c = TimeCal.civil(day, zone)
+        return makeDate(c.y, c.m, c.d, clock.0, clock.1, clock.2)
     }
 
     // MARK: terms
@@ -103,6 +103,8 @@ struct DateParser {
         return terms
     }
 
+    private func isWeekend(_ d: Date) -> Bool { [0, 6].contains(TimeCal.civil(d, zone).weekday) }
+
     func apply(_ terms: [TimeTerm], factor: Double = 1, to start: Date) -> Date? {
         var date = start
         for t in terms {
@@ -119,22 +121,23 @@ struct DateParser {
             case .minute: date = date.addingTimeInterval(n * 60)
             case .hour: date = date.addingTimeInterval(n * 3600)
             case .day:
-                if whole { guard let d = cal.date(byAdding: .day, value: Int(n), to: date) else { return nil }; date = d }
+                if whole { guard let d = TimeCal.add(.day, Int(n), to: date, in: zone) else { return nil }; date = d }
                 else { date = date.addingTimeInterval(n * 86400) }
             case .week:
-                if whole { guard let d = cal.date(byAdding: .day, value: Int(n) * 7, to: date) else { return nil }; date = d }
+                if whole { guard let d = TimeCal.add(.day, Int(n) * 7, to: date, in: zone) else { return nil }; date = d }
                 else { date = date.addingTimeInterval(n * 7 * 86400) }
-            case .month: guard let d = cal.date(byAdding: .month, value: Int(n), to: date) else { return nil }; date = d
-            case .year: guard let d = cal.date(byAdding: .year, value: Int(n), to: date) else { return nil }; date = d
+            case .month: guard let d = TimeCal.add(.month, Int(n), to: date, in: zone) else { return nil }; date = d
+            case .year: guard let d = TimeCal.add(.year, Int(n), to: date, in: zone) else { return nil }; date = d
             case .weekday:
                 let step = n < 0 ? -1 : 1
                 var left = Int(abs(n))
                 while left > 0 {
-                    guard let d = cal.date(byAdding: .day, value: step, to: date) else { return nil }
+                    guard let d = TimeCal.add(.day, step, to: date, in: zone) else { return nil }
                     date = d
-                    if !cal.isDateInWeekend(date) { left -= 1 }
+                    if !isWeekend(date) { left -= 1 }
                 }
             }
+            guard TimeCal.inRange(date) else { return nil }
         }
         return date
     }
@@ -171,10 +174,10 @@ struct DateParser {
         if let g = ToolSupport.match(#"(today|tomorrow|yesterday)(?:\s+(?:at\s+)?(.+))?"#, in: s) {
             let offset = g[0] == "tomorrow" ? 1 : g[0] == "yesterday" ? -1 : 0
             if g[1].isEmpty {
-                if g[0] == "today" { return ParsedDate(date: cal.startOfDay(for: now), hasTime: false) }
-                return cal.date(byAdding: .day, value: offset, to: now).map { ParsedDate(date: $0, hasTime: true) }
+                if g[0] == "today" { return ParsedDate(date: startOfDay(now), hasTime: false) }
+                return TimeCal.add(.day, offset, to: now, in: zone).map { ParsedDate(date: $0, hasTime: true) }
             }
-            guard let clock = Self.parseClock(g[1]), let day = cal.date(byAdding: .day, value: offset, to: now),
+            guard let clock = Self.parseClock(g[1]), let day = TimeCal.add(.day, offset, to: now, in: zone),
                   let d = setClock(day, clock) else { return nil }
             return ParsedDate(date: d, hasTime: true)
         }
@@ -182,15 +185,15 @@ struct DateParser {
             let mod = g[0]
             if mod.isEmpty && !g[1].hasSuffix("day") { return nil }
             let target = Self.weekdayNames[g[1]]!
-            let today = cal.startOfDay(for: now)
-            let diff = (target - cal.component(.weekday, from: today) + 7) % 7
+            let today = startOfDay(now)
+            let diff = (target - (TimeCal.civil(today, zone).weekday + 1) + 7) % 7
             let delta: Int
             switch mod {
             case "next": delta = diff == 0 ? 7 : diff
             case "last", "previous": delta = diff == 0 ? -7 : diff - 7
             default: delta = diff
             }
-            guard var d = cal.date(byAdding: .day, value: delta, to: today) else { return nil }
+            guard var d = TimeCal.add(.day, delta, to: today, in: zone) else { return nil }
             if !g[2].isEmpty { guard let clock = Self.parseClock(g[2]), let withClock = setClock(d, clock) else { return nil }; d = withClock }
             return ParsedDate(date: d, hasTime: !g[2].isEmpty)
         }
@@ -234,7 +237,7 @@ struct DateParser {
 
     /// A calendar day (start of day): ISO, numeric d/m/Y styles, or "31 December, 2021".
     func parseDay(_ s: String, explicit: Bool) -> (Date, Bool)? {
-        let y0 = cal.component(.year, from: now)
+        let y0 = TimeCal.civil(now, zone).y
         if let g = ToolSupport.match(#"(\d{4})-(\d{2})-(\d{2})"#, in: s) {
             return makeDate(Int(g[0])!, Int(g[1])!, Int(g[2])!).map { ($0, false) }
         }

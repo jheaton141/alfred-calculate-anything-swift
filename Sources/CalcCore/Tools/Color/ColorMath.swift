@@ -47,27 +47,27 @@ enum ColorMath {
         case "hsl", "hsla":
             guard n == 3 || n == 4 else { return nil }
             return fromHSL(v[0], pct(1), pct(2), alpha(3))
-        case "hsv", "hsb", "hsva":
+        case "hsv", "hsb", "hsva", "hsba":
             guard n == 3 || n == 4 else { return nil }
             return fromHSV(v[0], pct(1), pct(2), alpha(3))
         case "hwb":
             guard n == 3 || n == 4 else { return nil }
             return fromHWB(v[0], pct(1), pct(2), alpha(3))
         case "cmyk":
-            guard n == 4 else { return nil }
+            guard n == 4 || n == 5 else { return nil }
             let k = pct(3)
             return RGBA(r: clamp255(255 * (1 - pct(0)) * (1 - k)), g: clamp255(255 * (1 - pct(1)) * (1 - k)),
-                        b: clamp255(255 * (1 - pct(2)) * (1 - k)))
+                        b: clamp255(255 * (1 - pct(2)) * (1 - k)), a: alpha(4))
         case "lab":
-            guard n == 3 else { return nil }
-            return fromLab(v[0], v[1], v[2])
+            guard n == 3 || n == 4 else { return nil }
+            return fromLab(v[0], v[1], v[2], alpha(3))
         case "lch":
-            guard n == 3 else { return nil }
+            guard n == 3 || n == 4 else { return nil }
             let rad = v[2] * .pi / 180
-            return fromLab(v[0], v[1] * cos(rad), v[1] * sin(rad))
+            return fromLab(v[0], v[1] * cos(rad), v[1] * sin(rad), alpha(3))
         case "xyz":
-            guard n == 3 else { return nil }
-            return fromXYZ(v[0] / 100, v[1] / 100, v[2] / 100)
+            guard n == 3 || n == 4 else { return nil }
+            return fromXYZ(v[0] / 100, v[1] / 100, v[2] / 100, alpha(3))
         default: return nil
         }
     }
@@ -144,16 +144,16 @@ enum ColorMath {
         return RGBA(r: clamp255(Double(pure.r) * k + ww), g: clamp255(Double(pure.g) * k + ww), b: clamp255(Double(pure.b) * k + ww), a: a)
     }
 
-    static func fromXYZ(_ x: Double, _ y: Double, _ z: Double) -> RGBA {
+    static func fromXYZ(_ x: Double, _ y: Double, _ z: Double, _ a: Double = 1) -> RGBA {
         let lr = 3.2404542 * x - 1.5371385 * y - 0.4985314 * z
         let lg = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z
         let lb = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z
-        return RGBA(r: clamp255(gamma(lr) * 255), g: clamp255(gamma(lg) * 255), b: clamp255(gamma(lb) * 255))
+        return RGBA(r: clamp255(gamma(lr) * 255), g: clamp255(gamma(lg) * 255), b: clamp255(gamma(lb) * 255), a: a)
     }
 
-    static func fromLab(_ l: Double, _ a: Double, _ b: Double) -> RGBA {
+    static func fromLab(_ l: Double, _ a: Double, _ b: Double, _ alpha: Double = 1) -> RGBA {
         let fy = (l + 16) / 116, fx = fy + a / 500, fz = fy - b / 200
-        return fromXYZ(labFInv(fx) * 0.95047, labFInv(fy), labFInv(fz) * 1.08883)
+        return fromXYZ(labFInv(fx) * 0.95047, labFInv(fy), labFInv(fz) * 1.08883, alpha)
     }
 
     /// Hue-sector conversion shared by hsl, hsv and hwb.
@@ -220,40 +220,47 @@ enum ColorMath {
                 let body = "\(n(v.h, p)), \(n(v.s * 100, p))%, \(n(v.l * 100, p))%"
                 return hasAlpha || space == "hsla" ? "hsla(\(body), \(alpha))" : "hsl(\(body))"
             }
-        case "hsv", "hsb":
+        case "hsv", "hsb", "hsva", "hsba":
             return roundTrip(c) { p in
                 let v = toHSV(c)
-                return "\(space)(\(n(v.h, p)), \(n(v.s * 100, p))%, \(n(v.v * 100, p))%)"
+                let body = "\(n(v.h, p)), \(n(v.s * 100, p))%, \(n(v.v * 100, p))%"
+                let base = String(space.prefix(3))
+                return hasAlpha || space.count == 4 ? "\(base)a(\(body), \(alpha))" : "\(base)(\(body))"
             }
         case "hwb":
             return roundTrip(c) { p in
                 let v = toHWB(c)
-                return "hwb(\(n(v.h, p)), \(n(v.w * 100, p))%, \(n(v.b * 100, p))%)"
+                let body = "\(n(v.h, p)), \(n(v.w * 100, p))%, \(n(v.b * 100, p))%"
+                return "hwb(\(body)\(hasAlpha ? ", \(alpha)" : ""))"
             }
         case "cmyk":
             return roundTrip(c) { p in
                 let v = toCMYK(c)
-                return "cmyk(\(n(v.c * 100, p))%, \(n(v.m * 100, p))%, \(n(v.y * 100, p))%, \(n(v.k * 100, p))%)"
+                let body = "\(n(v.c * 100, p))%, \(n(v.m * 100, p))%, \(n(v.y * 100, p))%, \(n(v.k * 100, p))%"
+                return "cmyk(\(body)\(hasAlpha ? ", \(alpha)" : ""))"
             }
         case "lab":
             let v = toLab(c)
-            return "lab(\(n(v.l, 2))% \(n(v.a, 2)) \(n(v.b, 2)))"
+            return "lab(\(n(v.l, 2))% \(n(v.a, 2)) \(n(v.b, 2))\(hasAlpha ? " / \(alpha)" : ""))"
         case "lch":
             let v = toLab(c)
             var h = atan2(v.b, v.a) * 180 / .pi; if h < 0 { h += 360 }
             let chroma = hypot(v.a, v.b)
-            return "lch(\(n(v.l, 2))% \(n(chroma, 2)) \(n(chroma < 0.005 ? 0 : h, 2)))"
+            return "lch(\(n(v.l, 2))% \(n(chroma, 2)) \(n(chroma < 0.005 ? 0 : h, 2))\(hasAlpha ? " / \(alpha)" : ""))"
         default:
-            let v = toXYZ(c)
-            return "color(xyz \(n(v.x * 100, 2)) \(n(v.y * 100, 2)) \(n(v.z * 100, 2)))"
+            // Two decimals can be too coarse for dark colours, so widen until the rgb survives the round trip.
+            return roundTrip(c, decimals: 2...6) { p in
+                let v = toXYZ(c)
+                return "color(xyz \(n(v.x * 100, p)) \(n(v.y * 100, p)) \(n(v.z * 100, p))\(hasAlpha ? " / \(alpha)" : ""))"
+            }
         }
     }
 
-    private static func roundTrip(_ c: RGBA, _ make: (Int) -> String) -> String {
-        for p in 0...2 {
+    private static func roundTrip(_ c: RGBA, decimals: ClosedRange<Int> = 0...2, _ make: (Int) -> String) -> String {
+        for p in decimals {
             let s = make(p)
             if let back = parse(s, allowBareHex: false), back.r == c.r, back.g == c.g, back.b == c.b { return s }
         }
-        return make(2)
+        return make(decimals.upperBound)
     }
 }

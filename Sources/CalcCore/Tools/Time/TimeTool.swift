@@ -56,8 +56,8 @@ public struct TimeTool: Tool {
     /// "1 month, 25 days" between two instants, calendar-aware.
     private func span(_ a: Date, _ b: Date, _ x: Env) -> String {
         let (s, e) = a <= b ? (a, b) : (b, a)
-        let c = TimeCal.calendar(x.zone).dateComponents([.year, .month, .day, .hour, .minute, .second], from: s, to: e)
-        let parts: [(Int?, String)] = [(c.year, "year"), (c.month, "month"), (c.day, "day"), (c.hour, "hour"), (c.minute, "minute"), (c.second, "second")]
+        let c = TimeCal.diff(s, e, x.zone)
+        let parts: [(Int?, String)] = [(c.y, "year"), (c.mo, "month"), (c.d, "day"), (c.h, "hour"), (c.mi, "minute"), (c.s, "second")]
         let text = parts.compactMap { n, u in (n ?? 0) != 0 ? plural(n!, u) : nil }
         return text.isEmpty ? "0 seconds" : text.joined(separator: ", ")
     }
@@ -66,6 +66,7 @@ public struct TimeTool: Tool {
 
     /// Formatted dates, the timespan from now, and the unix timestamp.
     private func dateRows(_ date: Date, isNow: Bool, _ x: Env) -> [AlfredItem] {
+        guard TimeCal.inRange(date) else { return [invalid(x)] }
         let iso = TimeCal.iso(date, x.zone)
         var items: [AlfredItem] = []
         for f in options.formats {
@@ -103,7 +104,7 @@ public struct TimeTool: Tool {
         else if let g = ToolSupport.match(#"(.+?)\s+(?:to|in|as)\s+(?:a\s+)?(?:unix\s+)?(?:timestamp|epoch|unix|ts)"#, in: q) { source = g[0] }
         guard let text = source else { return nil }
         let date = text == "now" ? x.now : x.parser.parse(text, explicit: true)?.date
-        guard let d = date else { return nil }
+        guard let d = date, TimeCal.inRange(d) else { return nil }
         let ts = String(stamp(d))
         let sub = "Unix timestamp of \(plainDate(d, x))"
         return [row(ts, sub, raw: ts, x), row(ts + "000", "Milliseconds", raw: ts + "000", x)]
@@ -113,19 +114,37 @@ public struct TimeTool: Tool {
 
     private func boundaryQuery(_ q: String, _ x: Env) -> [AlfredItem]? {
         guard let g = ToolSupport.match(#"(start|beginning|end)\s+of\s+(.+)"#, in: q) else { return nil }
-        let cal = TimeCal.calendar(x.zone)
         let start = g[0] != "end"
         let what = g[1]
-        var interval: DateInterval?
+        let zone = x.zone
+        var interval: (Date, Date)?
+        func bounds(_ from: Date, _ unit: String) -> (Date, Date)? {
+            let c = TimeCal.civil(from, zone)
+            switch unit {
+            case "year": return (TimeCal.resolve(c.y, 1, 1, 0, 0, 0, in: zone), TimeCal.resolve(c.y + 1, 1, 1, 0, 0, 0, in: zone))
+            case "month":
+                let (ny, nm) = c.m == 12 ? (c.y + 1, 1) : (c.y, c.m + 1)
+                return (TimeCal.resolve(c.y, c.m, 1, 0, 0, 0, in: zone), TimeCal.resolve(ny, nm, 1, 0, 0, 0, in: zone))
+            case "week":
+                guard let s = TimeCal.add(.day, -((c.weekday + 6) % 7), to: TimeCal.startOfDay(from, zone), in: zone),
+                      let e = TimeCal.add(.day, 7, to: s, in: zone) else { return nil }
+                return (s, e)
+            case "day":
+                let s = TimeCal.startOfDay(from, zone)
+                return TimeCal.add(.day, 1, to: s, in: zone).map { (s, $0) }
+            case "hour":
+                let s = TimeCal.resolve(c.y, c.m, c.d, c.h, 0, 0, in: zone)
+                return (s, s.addingTimeInterval(3600))
+            default: return nil
+            }
+        }
         if let y = ToolSupport.match(#"(\d{4})"#, in: what).flatMap({ Int($0[0]) }) {
-            interval = x.parser.makeDate(y, 1, 1).flatMap { cal.dateInterval(of: .year, for: $0) }
+            interval = x.parser.makeDate(y, 1, 1).flatMap { bounds($0, "year") }
         } else {
-            let units: [String: Calendar.Component] = ["year": .year, "month": .month, "week": .weekOfYear, "day": .day, "hour": .hour]
-            guard let comp = units[what] else { return nil }
-            interval = cal.dateInterval(of: comp, for: x.now)
+            interval = bounds(x.now, what)
         }
         guard let i = interval else { return nil }
-        let date = start ? i.start : i.end.addingTimeInterval(-1)
+        let date = start ? i.0 : i.1.addingTimeInterval(-1)
         return dateRows(date, isNow: false, x)
     }
 
@@ -134,9 +153,8 @@ public struct TimeTool: Tool {
     private func untilQuery(_ q: String, _ x: Env) -> [AlfredItem]? {
         guard let g = ToolSupport.match(#"(weeks?|days?|hours?|minutes?|seconds?)\s+(until|till|since)\s+(.+)"#, in: q),
               var target = x.parser.parse(g[2], explicit: true) else { return nil }
-        let cal = TimeCal.calendar(x.zone)
         let until = g[1] != "since"
-        if target.yearImplicit, let shifted = cal.date(byAdding: .year, value: until ? (target.date < x.now ? 1 : 0) : (target.date > x.now ? -1 : 0), to: target.date) {
+        if target.yearImplicit, let shifted = TimeCal.add(.year, until ? (target.date < x.now ? 1 : 0) : (target.date > x.now ? -1 : 0), to: target.date, in: x.zone) {
             target.date = shifted
         }
         let diff = target.date.timeIntervalSince(x.now)
@@ -169,8 +187,7 @@ public struct TimeTool: Tool {
             let left = ns.substring(to: m.range.location), right = ns.substring(from: m.range.location + m.range.length)
             guard let a = x.parser.parse(left, explicit: explicit)?.date, let b = x.parser.parse(right, explicit: explicit)?.date else { continue }
             let (s, e) = a <= b ? (a, b) : (b, a)
-            let cal = TimeCal.calendar(x.zone)
-            let days = cal.dateComponents([.day], from: s, to: e).day ?? 0
+            let days = TimeCal.totalDays(s, e, x.zone)
             let hours = Int(e.timeIntervalSince(s) / 3600)
             let sub = String(format: ToolSupport.tr(x.strings, "difference_subtitle", "Time difference between %@ and %@"), plainDate(a, x), plainDate(b, x))
             return [row(span(a, b, x), sub, raw: String(Int(e.timeIntervalSince(s))), x),
@@ -208,10 +225,10 @@ public struct TimeTool: Tool {
             guard let clock = DateParser.parseClock(g[1]) else { return nil }
             if !g[2].isEmpty { guard let z = ZoneResolver.resolve(g[2]) else { return nil }; srcZone = z }
             let srcParser = DateParser(zone: srcZone.zone, now: x.now)
-            var day = srcParser.cal.startOfDay(for: x.now)
+            var day = srcParser.startOfDay(x.now)
             if !g[0].isEmpty {
                 guard let p = srcParser.parseBase(g[0], explicit: true) else { return nil }
-                day = srcParser.cal.startOfDay(for: p.date)
+                day = srcParser.startOfDay(p.date)
             }
             guard let d = srcParser.setClock(day, clock) else { return nil }
             instant = d
@@ -229,11 +246,11 @@ public struct TimeTool: Tool {
         guard resolved.count == names.count else { return nil }
 
         let srcLabel = ZoneResolver.label(src, at: instant)
-        let srcText = "\(TimeCal.fmt("HH:mm", instant, src.zone)) \(srcLabel) (\(TimeCal.fmt("EEE d MMM", instant, src.zone)))"
+        let srcText = "\(TimeCal.fmt("H:i", instant, src.zone)) \(srcLabel) (\(TimeCal.fmt("D j M", instant, src.zone)))"
         return resolved.map { t in
             let label = ZoneResolver.label(t, at: instant)
-            let title = "\(TimeCal.fmt("HH:mm", instant, t.zone)) \(label) (\(TimeCal.fmt("EEE d MMM", instant, t.zone)))"
-            let full = "\(TimeCal.fmt("EEEE, MMMM d, yyyy HH:mm:ss", instant, t.zone)) \(label) (UTC\(TimeCal.offset(t.zone, instant)))"
+            let title = "\(TimeCal.fmt("H:i", instant, t.zone)) \(label) (\(TimeCal.fmt("D j M", instant, t.zone)))"
+            let full = "\(TimeCal.fmt("l, F j, Y H:i:s", instant, t.zone)) \(label) (UTC\(TimeCal.offset(t.zone, instant)))"
             var sub = (isNow ? "Now: " : "From ") + srcText
             for note in [src.note, t.note].compactMap({ $0 }) { sub += "; " + note }
             return row(title, sub, raw: TimeCal.iso(instant, t.zone), alt: full, x)
