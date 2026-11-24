@@ -150,6 +150,18 @@ final class RatesTests: XCTestCase {
         XCTAssertTrue(t3.stale)
     }
 
+    func testCryptoOfflineMissingCoinThrows() async throws {
+        let h = FakeHTTP(), c = Clock()
+        h.routes[geckoURL] = Data(#"{"bitcoin":{"usd":50000}}"#.utf8)
+        _ = try await make(h, c).cryptoRates(symbols: ["BTC"])
+        h.routes = [:]
+        do { _ = try await make(h, c).cryptoRates(symbols: ["ETH"]); XCTFail("expected unavailable") } catch is RatesError {}
+        c.t += 3600
+        do { _ = try await make(h, c).cryptoRates(symbols: ["ETH"]); XCTFail("expected unavailable") } catch is RatesError {}
+        let ok = try await make(h, c).cryptoRates(symbols: ["BTC"])
+        XCTAssertTrue(ok.stale)
+    }
+
     func testLiveSmoke() async throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["RUN_LIVE"] == "1", "set RUN_LIVE=1")
         let s = RatesService(dataDir: dir, settings: Settings())

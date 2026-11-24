@@ -88,8 +88,10 @@ public final class RatesService: RatesProviding {
         }
 
         if got.isEmpty {
-            if let c = cached, fresh { return c }
-            return try staleOrThrow(cached, "crypto")
+            guard let c = cached, wanted.allSatisfy({ c.rates[$0] != nil }) else {
+                throw RatesError.unavailable("No crypto rates for \(wanted.sorted().joined(separator: ", ")): network unavailable and not cached")
+            }
+            return fresh ? c : try staleOrThrow(c, "crypto")
         }
 
         var rates = cached?.rates ?? [:]
