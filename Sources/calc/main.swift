@@ -3,6 +3,8 @@ import Foundation
 
 let env = ProcessInfo.processInfo.environment
 let query = CommandLine.arguments.dropFirst().joined(separator: " ")
-let context = Context(settings: Settings(environment: env), dataDir: DefaultEngine.dataDir(environment: env))
+let settings = Settings(environment: env)
+let dataDir = DefaultEngine.dataDir(environment: env)
+let context = Context(settings: settings, rates: RatesService(dataDir: dataDir, settings: settings), dataDir: dataDir)
 let output = await Engine(tools: DefaultEngine.tools()).run(query, context: context)
 print(output.json())

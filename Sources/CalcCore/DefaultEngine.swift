@@ -2,7 +2,9 @@ import Foundation
 
 public enum DefaultEngine {
     /// The tools in dispatch order. Ports register themselves here.
-    public static func tools() -> [Tool] { [] }
+    public static func tools() -> [Tool] {
+        [VatTool(), PercentageTool(), PxEmRemTool(), DataStorageTool(), UnitsTool(), CryptoTool(), CurrencyTool(), MathTool()]
+    }
 
     /// Where cached rates and settings live: alfred_workflow_data, else ./.data next to the working directory.
     public static func dataDir(environment env: [String: String] = ProcessInfo.processInfo.environment) -> URL {

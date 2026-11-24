@@ -25,7 +25,7 @@ public struct RateTable: Codable, Equatable {
 public protocol RatesProviding {
     /// Fiat rates (ECB via Frankfurter, fallback fawazahmed0). Stale cache is returned flagged when offline.
     func fiatRates() async throws -> RateTable
-    /// Crypto prices expressed in USD per coin (symbol uppercased), CoinGecko then Coinbase.
+    /// Crypto table with base USD where rates[SYMBOL] is coins per 1 USD (symbol uppercased), CoinGecko then Coinbase.
     func cryptoRates(symbols: [String]) async throws -> RateTable
 }
 

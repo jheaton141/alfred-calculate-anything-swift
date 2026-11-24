@@ -1,0 +1,64 @@
+SAME	10 km to mi	6.21371192 mi	6.21371192 mi
+SAME	100oz to kg	2.83495231 kg	2.83495231 kg
+SAME	1 mi to km	1.609344 km	1.609344 km
+SAME	5 ft to m	1.524 m | 1 m, 52.4 cm	1.524 m | 1 m, 52.4 cm
+SAME	72 inches to ft	6 ft	6 ft
+DIFF	84 inches to ft	7.0 ft | 7 ft, 12 in	7 ft
+DIFF	96 in to ft	8.0 ft | 8 ft, 12 in	8 ft
+DIFF	12 in to ft	1.0 ft | 1 ft, 12 in	1 ft
+DIFF	100 f to c	37.7 c	37.78 c
+DIFF	0 c to f	32.0 f	32 f
+DIFF	30 c to k	303.1 k	303.15 k
+DIFF	1 gal to l	3.78541 l	3.78541178 l
+DIFF	1 l to gal	0.26417218 gal	0.26417205 gal
+DIFF	1 ml to oz	Error, you can not convert from ml to oz	0.03381402 fl oz
+DIFF	500 ml to fl oz		16.90701135 fl oz
+SAME	1 uk pint to ml	568.26125 ml	568.26125 ml
+DIFF	1 uk gallon to l	4.405 l	4.54609 l
+DIFF	1 cup to ml		236.5882365 ml
+DIFF	1 tbsp to ml		14.78676478 ml
+DIFF	1 tsp to ml		4.92892159 ml
+DIFF	10 acres to sqm		40,468.564224 sqm
+DIFF	1 sqft to sqm		0.09290304 sqm
+DIFF	1 hectare to acres		2.47105381 ac
+DIFF	10 years to months	120  months	120 months
+DIFF	1 year to sec	31,536,000  seconds	31,536,000 seconds
+DIFF	1hr s	3,600  seconds	3,600 seconds
+DIFF	90 min to hours	1.5  hours	1.5 hours
+DIFF	2 days to hours	48  hours	48 hours
+DIFF	60 mph to kph	96.56056275 kph	96.56064 kph
+DIFF	100 kph to mph	62.13716893 mph	62.13711922 mph
+DIFF	10 lb to kg	4.53592 kg	4.5359237 kg
+DIFF	70 kg to lb	154.32370941 lb	154.32358353 lb
+DIFF	1 stone to kg		6.35029318 kg
+SAME	10 gb to mb	10,000 MB	10,000 MB
+SAME	1 tb to gb	1,000 GB	1,000 GB
+SAME	1024 kb to mb	1.024 MB	1.024 MB
+SAME	500 mb to gb	0.5 GB	0.5 GB
+SAME	1 gib to mib	1,024 MiB	1,024 MiB
+SAME	2 pb to tb	2,000 TB	2,000 TB
+SAME	20% of 150	30	30
+SAME	15% of 80	12	12
+DIFF	what is 20% of 150		30
+SAME	150 + 20%	180	180
+SAME	150 - 20%	120	120
+SAME	100 + 15%	115	115
+SAME	50 is what % of 200	50 is 25% of 200 | The percentage increase from 50 to 200 is 300% | The percentage decrease from 200 to 50 is 75%	50 is 25% of 200 | The percentage increase from 50 to 200 is 300% | The percentage decrease from 200 to 50 is 75%
+DIFF	20 is 10% of what		200
+DIFF	10 to 30 % change		+200% (increase from 10 to 30)
+DIFF	% change from 50 to 75		+50% (increase from 50 to 75)
+DIFF	1.234,56 + 10%		1.36
+SAME	16px to rem	1rem	1rem
+SAME	1.5rem to px	24px	24px
+SAME	24px to em	1.5em	1.5em
+SAME	2em to px	32px	32px
+SAME	16px to pt	12pt	12pt
+DIFF	10 + 5		15
+DIFF	2 * 3		6
+DIFF	10 / 4		2.5
+DIFF	2 ^ 3		8
+DIFF	sqrt(16)		4
+DIFF	100	VAT of 100 = 16 | 100 plus VAT = 116 | 100 minus VAT = 86.20689655	VAT of 100 = 16 | 100 plus VAT = 116 | 100 minus VAT = 86.21
+DIFF	100 vat	VAT of 100 = 16 | 100 plus VAT = 116 | 100 minus VAT = 86.20689655	VAT of 100 = 16 | 100 plus VAT = 116 | 100 minus VAT = 86.21
+DIFF	121 with vat	VAT of 121 = 19.360 | 121 plus VAT = 140.36 | 121 minus VAT = 104.31034483	121 plus VAT = 140.36
+DIFF	200 -vat	VAT of 200 = 32 | 200 plus VAT = 232 | 200 minus VAT = 172.41379310	200 minus VAT = 172.41
