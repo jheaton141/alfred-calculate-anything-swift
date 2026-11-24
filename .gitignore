@@ -97,3 +97,4 @@ tests.txt
 .build/
 .DS_Store
 vendor/
+.build*/
