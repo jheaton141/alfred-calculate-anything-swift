@@ -16,7 +16,7 @@ public enum NumberFormat {
         return (neg ? "-" : "") + out
     }
 
-    /// Unformatted number rounded half away from zero (as PHP round), trailing zeros trimmed, "." decimal point.
+    /// Unformatted number rounded half away from zero (half away from zero), trailing zeros trimmed, "." decimal point.
     public static func plain(_ value: Double, decimals: Int) -> String {
         let d = min(max(decimals, 0), 12)
         var s: String

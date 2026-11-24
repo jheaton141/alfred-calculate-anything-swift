@@ -8,7 +8,7 @@ final class UnitsTests: XCTestCase {
     private func titles(_ q: String) async -> [String]? { await run(q)?.map(\.title) }
     private func first(_ q: String) async -> String? { await titles(q)?.first }
 
-    func testPHPGoldenLengthMassSpeed() async {
+    func testGoldenLengthMassSpeed() async {
         let cases: [(String, String)] = [
             ("10 km to mi", "6.21371192 mi"),
             ("100oz to kg", "2.83495231 kg"),
@@ -26,7 +26,7 @@ final class UnitsTests: XCTestCase {
         for (q, want) in cases { let got = await first(q); XCTAssertEqual(got, want, q) }
     }
 
-    func testPHPBugFixes() async {
+    func testUpstreamBugFixes() async {
         var got = await first("100 f to c"); XCTAssertEqual(got, "37.78 c")
         got = await first("30 c to k"); XCTAssertEqual(got, "303.15 k")
         got = await first("1 uk gallon to l"); XCTAssertEqual(got, "4.54609 l")

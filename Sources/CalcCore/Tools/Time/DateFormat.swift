@@ -119,8 +119,8 @@ enum TimeCal {
         return n
     }
 
-    /// "HH:mm" style output via PHP date() patterns in a given zone.
-    static func fmt(_ pattern: String, _ date: Date, _ zone: TimeZone) -> String { PHPDate.format(pattern, date, zone) }
+    /// "HH:mm" style output via date pattern letters (j F, Y, g:i a) in a given zone.
+    static func fmt(_ pattern: String, _ date: Date, _ zone: TimeZone) -> String { DatePattern.format(pattern, date, zone) }
 
     /// "+09:00" style offset of a zone at a date.
     static func offset(_ zone: TimeZone, _ date: Date) -> String {
@@ -130,11 +130,11 @@ enum TimeCal {
     }
 
     /// ISO-8601 with numeric offset, e.g. 2026-11-24T05:00:00+09:00.
-    static func iso(_ date: Date, _ zone: TimeZone) -> String { PHPDate.format("Y-m-d\\TH:i:sP", date, zone) }
+    static func iso(_ date: Date, _ zone: TimeZone) -> String { DatePattern.format("Y-m-d\\TH:i:sP", date, zone) }
 }
 
-/// Formats dates with PHP date() patterns (upstream's time_format setting), e.g. "F jS, Y, g:i:s a".
-enum PHPDate {
+/// Formats dates with date pattern letters (j F, Y, g:i a) (upstream's time_format setting), e.g. "F jS, Y, g:i:s a".
+enum DatePattern {
     private static let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     private static let days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 

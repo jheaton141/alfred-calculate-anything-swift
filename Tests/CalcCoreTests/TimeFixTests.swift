@@ -34,7 +34,7 @@ final class TimeFixTests: XCTestCase {
     // MARK: DST gaps
 
     func testNewYorkGapAllPathsShiftForward() {
-        // 2026-03-08 02:30 does not exist in New York; PHP gives 03:30 EDT.
+        // 2026-03-08 02:30 does not exist in New York.
         let want = "2026-03-08 03:30:00 -04:00"
         XCTAssertEqual(first("2026-03-08 02:30"), want)
         XCTAssertEqual(first("2026-03-08 02:30:00"), want)

@@ -1,12 +1,12 @@
 # Calculate Anything (Swift)
 
-A fork of [biati-digital/alfred-calculate-anything](https://github.com/biati-digital/alfred-calculate-anything), rewritten in Swift. It is a single native binary: no PHP, no API keys, no setup. Type a calculation in Alfred and get the answer.
+A fork of [biati-digital/alfred-calculate-anything](https://github.com/biati-digital/alfred-calculate-anything), rewritten in Swift. It is a single native binary with no runtime, no API keys and no setup. Type a calculation in Alfred and get the answer.
 
 Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter copies the value with its unit.
 
 ## What changed from upstream
 
-- **No PHP.** One universal (Apple silicon and Intel) `calc` binary, about 1.6 MB.
+- **No runtime to install.** One universal (Apple silicon and Intel) `calc` binary, about 1.6 MB.
 - **No API keys.** Fiat rates come from [Frankfurter](https://frankfurter.dev) and [fawazahmed0/currency-api](https://github.com/fawazahmed0/exchange-api). Crypto prices come from CoinGecko, with Coinbase spot as the fallback.
 - **Works offline.** Rates are cached on disk. If every source is down, the last cached rates are shown and labelled as stale.
 - **Fixed upstream bugs:** Fahrenheit to Celsius and Celsius to Kelvin, the UK gallon, millilitres to ounces, VAT rounding, a stray extra row for feet and inches, and doubled spaces in time units.
@@ -67,18 +67,18 @@ English, Spanish and Swedish packs for the result text are built into the binary
 swift build
 swift test                   # 145 tests; set RUN_LIVE=1 to include the live-network test
 ./.build/debug/calc "20% of 150"
-Tests/golden/compare.sh      # compares the Swift output with the original PHP over a query corpus
+Tests/golden/compare.sh      # compares the Swift output with recorded upstream outputs over a query corpus
 ```
 
 The code is a `CalcCore` library (tools, rates, formatting), a thin `calc` executable and an XCTest target. A tool returns `nil` for queries that are not its own, and the engine takes the first answer in this order: VAT, percentage, px/em/rem, data storage, time, units, crypto, currency, colour, math. See [PLAN.md](PLAN.md) for the design notes, the progress log and the known gaps.
 
-The original PHP sources (`workflow/`, `process.php`, `lang/`, `composer.json`) are kept only so the golden comparison can run the old code. They are not part of the Swift workflow.
+The golden corpus in `Tests/golden/` holds outputs recorded from the upstream workflow; every difference from them was reviewed as an intended fix or addition.
 
 ## Known limitations
 
 - Rate sources are free services with no guarantee; if all are down you get cached rates labelled as stale, or an error if nothing was ever cached.
 - Dates beyond about year 200,000 return "not a valid date".
-- Month arithmetic clamps to the last day of the month (`2025-01-31 + 1 month` is Feb 28; upstream PHP gives Mar 3).
+- Month arithmetic clamps to the last day of the month (`2025-01-31 + 1 month` is Feb 28; upstream gives Mar 3).
 - Bare 10- or 13-digit numbers are read as timestamps, as upstream does.
 - Lab and lch print two decimals, so converting them back may differ by one in the last digit.
 

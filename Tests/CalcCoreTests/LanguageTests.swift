@@ -20,7 +20,7 @@ final class LanguageTests: XCTestCase {
             XCTAssertEqual(Set(pack.keys), Set(en.keys), code)
             for (k, v) in pack {
                 XCTAssertEqual(v.components(separatedBy: "%@").count, en[k]!.components(separatedBy: "%@").count, "\(code).\(k) placeholder count")
-                XCTAssertFalse(v.contains("%s"), "\(code).\(k) uses PHP placeholder")
+                XCTAssertFalse(v.contains("%s"), "\(code).\(k) uses %s placeholder")
             }
         }
     }

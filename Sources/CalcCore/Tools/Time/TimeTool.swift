@@ -1,6 +1,6 @@
 import Foundation
 
-/// Settings for the time tool: the zone dates are read and shown in, and the PHP date() patterns for result rows.
+/// Settings for the time tool: the zone dates are read and shown in, and the date pattern letters (j F, Y, g:i a) for result rows.
 public struct TimeOptions {
     public var zone: TimeZone
     public var formats: [String]
@@ -71,7 +71,7 @@ public struct TimeTool: Tool {
         var items: [AlfredItem] = []
         for f in options.formats {
             let pattern = f.trimmingCharacters(in: .whitespaces)
-            let text = PHPDate.format(pattern, date, x.zone)
+            let text = DatePattern.format(pattern, date, x.zone)
             items.append(row(text, String(format: ToolSupport.tr(x.strings, "format_subtitle", "Format %@"), pattern), raw: iso, x))
         }
         if !isNow {
@@ -84,7 +84,7 @@ public struct TimeTool: Tool {
         return items
     }
 
-    private func plainDate(_ d: Date, _ x: Env) -> String { PHPDate.format("Y-m-d H:i:s", d, x.zone) }
+    private func plainDate(_ d: Date, _ x: Env) -> String { DatePattern.format("Y-m-d H:i:s", d, x.zone) }
 
     // MARK: unix timestamps
 

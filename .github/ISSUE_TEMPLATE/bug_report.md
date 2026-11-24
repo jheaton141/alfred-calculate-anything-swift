@@ -9,14 +9,8 @@ assignees: ''
 
 If you have a problem with the workflow please answer the following questions. Please note that the workflow is only compatible with Alfred 5.
 
-**is your problem related to the PHP binary, PHP Path, PHP installation, etc.?**
-The workflow does **NOT** handle anything related to the PHP binary, that's entirely Alfred, if you need help with this topic please use the [Alfred forum](https://www.alfredforum.com/topic/13974-calculate-anything/#comments) to get more help.
-
 **Are you using the latest version of the workflow?**
 Before creating an issue make sure you are using the latest version, you can find the latest version in the [releases page](https://github.com/biati-digital/alfred-calculate-anything/releases)
-
-**Have you installed the workflow dependencies?**
-if dependencies are not automatically installed by Alfred you can install them directly from Alfred following this steps https://www.alfredapp.com/help/kb/dependencies/ or manually install PHP with brew `brew install php`
 
 **Describe the bug**
 A clear and concise description of what the bug is.
@@ -38,7 +32,6 @@ Please enable debug (see image) open Alfred and type the conversion that it's no
 **System information:**
  - OS: [e.g. Mac OS 10.15.15]
  - Alfred Version [e.g. 4]
-- PHP Version - To find out the version open the Terminal.app and type: **php -v**
 
 **Additional context**
 Add any other context about the problem here.

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Built-in language packs (ported from the PHP lang files), embedded so the binary needs no resource bundle.
+/// Built-in language packs (ported from the original workflow), embedded so the binary needs no resource bundle.
 enum LanguagePacks {
     static let json: [String: String] = ["en_EN": en, "es_ES": es, "sv_SE": sv]
 
