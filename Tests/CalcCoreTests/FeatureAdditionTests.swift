@@ -63,6 +63,11 @@ final class CompoundUnitTests: XCTestCase {
         XCTAssertEqual(run("5,5 ft 3 in to cm", comma)?.first?.title, "175,26 cm")
     }
 
+    func testCompoundWithoutTarget() {
+        XCTAssertEqual(UnitsTool.expandCompound("5 ft 3 in", settings: Settings()), "63 in to ft, m")
+        XCTAssertEqual(run("5 ft 3 in")?.first?.title, "5.25 ft")
+    }
+
     func testMinutesBeforeSeconds() {
         XCTAssertEqual(UnitsTool.expandCompound("2 m 30 s to s", settings: Settings()), "150 s to s")
         XCTAssertEqual(UnitsTool.expandCompound("2 m 30 cm to cm", settings: Settings()), "230 cm to cm")
@@ -92,6 +97,11 @@ final class TipTests: XCTestCase {
         XCTAssertEqual(run("tip 85")?.map(\.title), ["15%: total 97.75", "18%: total 100.3", "20%: total 102", "25%: total 106.25"])
         XCTAssertEqual(run("20 tip")?.first?.title, "15%: total 23")
         XCTAssertEqual(run("tip 85 split 3")?.first?.title, "15%: each pays 32.58")
+    }
+
+    func testRoundingNote() {
+        XCTAssertTrue(run("tip 85 at 18% split 3")?.first?.subtitle.contains("shares add up to 100.29") == true)
+        XCTAssertEqual(run("tip 100 at 20% split 4")?.first?.subtitle.contains("shares"), false)
     }
 
     func testGivenRate() {
@@ -135,6 +145,14 @@ private final class StubRates: RatesProviding {
 }
 
 final class RatesRefreshTests: XCTestCase {
+    func testFailedDetection() async {
+        let good = await RatesRefresh.run(StubRates())
+        XCTAssertFalse(RatesRefresh.failed(good))
+        let bad = StubRates(); bad.fail = true
+        let summary = await RatesRefresh.run(bad)
+        XCTAssertTrue(RatesRefresh.failed(summary), summary)
+    }
+
     func testForcingExpiresCaches() {
         let s = RatesRefresh.forcing(Settings())
         XCTAssertEqual(s.fiatCacheHours, 0)

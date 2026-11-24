@@ -3,10 +3,12 @@ import Foundation
 
 let env = ProcessInfo.processInfo.environment
 let arguments = Array(CommandLine.arguments.dropFirst())
-if arguments == ["--refresh"] {
+if arguments == ["--refresh"] || arguments == ["--refresh", "--check"] {
     let refreshSettings = RatesRefresh.forcing(Settings(environment: env))
-    print(await RatesRefresh.run(RatesService(dataDir: DefaultEngine.dataDir(environment: env), settings: refreshSettings)))
-    exit(0)
+    let summary = await RatesRefresh.run(RatesService(dataDir: DefaultEngine.dataDir(environment: env), settings: refreshSettings))
+    print(summary)
+    // --check reports a failed refresh in the exit code; plain --refresh (Alfred) always exits 0 so the message shows
+    exit(arguments.contains("--check") && RatesRefresh.failed(summary) ? 1 : 0)
 }
 let query = CommandLine.arguments.dropFirst().joined(separator: " ")
 let settings = Settings(environment: env)

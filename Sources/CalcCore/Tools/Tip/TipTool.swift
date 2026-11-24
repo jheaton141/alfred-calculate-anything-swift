@@ -43,7 +43,7 @@ public struct TipTool: Tool {
             ]
             if people > 1 {
                 items.insert(row(String(format: ToolSupport.tr(str, "tip_each", "Each pays %@"), ToolSupport.fmt(f.each, s)),
-                                 String(format: ToolSupport.tr(str, "tip_each_sub", "Total %@%@, tip %@ each"), ToolSupport.fmt(f.total, s), ways, ToolSupport.fmt(f.tip / Double(people), s)), copy: f.each), at: 0)
+                                 String(format: ToolSupport.tr(str, "tip_each_sub", "Total %@%@, tip %@ each"), ToolSupport.fmt(f.total, s), ways, ToolSupport.fmt(f.tip / Double(people), s)) + Self.roundingNote(f.each, f.total, people, s), copy: f.each), at: 0)
             }
             return items
         }
@@ -79,5 +79,13 @@ public struct TipTool: Tool {
         if let g = ToolSupport.match(n + sep + n + "\\s*%?", in: rest) { return Parsed(bill: num(g[0]), percent: num(g[1]), people: people) }
         if let g = ToolSupport.match(n, in: rest) { return Parsed(bill: num(g[0]), percent: nil, people: people) }
         return nil
+    }
+
+    /// A short note when the rounded shares do not add up to the rounded total.
+    static func roundingNote(_ each: Double, _ total: Double, _ people: Int, _ s: Settings) -> String {
+        let scale = pow(10, Double(s.decimals))
+        let shares = (each * scale).rounded() / scale * Double(people)
+        guard abs(shares - (total * scale).rounded() / scale) > 0.5 / scale else { return "" }
+        return "; shares add up to \(ToolSupport.fmt(shares, s))"
     }
 }

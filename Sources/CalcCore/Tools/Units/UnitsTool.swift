@@ -89,10 +89,16 @@ public struct UnitsTool: Tool {
         }
         guard parts.count >= 2, let smallest = parts.last?.1, ![.temperature, .fuel, .count].contains(smallest.dim) else { return nil }
         let rest = ns.substring(from: pos).trimmingCharacters(in: .whitespaces)
-        guard let word = rest.split(separator: " ").first?.lowercased(), stopWords.contains(word) || rest.hasPrefix("=") else { return nil }
+        let word = rest.split(separator: " ").first?.lowercased() ?? ""
+        guard rest.isEmpty || stopWords.contains(word) || rest.hasPrefix("=") else { return nil }
         let total = parts.reduce(0.0) { $0 + $1.0 * $1.1.factor } / smallest.factor
         var text = NumberFormat.plain(total, decimals: 10)
         if settings.decimalSeparator != "." { text = text.replacingOccurrences(of: ".", with: String(settings.decimalSeparator)) }
+        if rest.isEmpty {
+            // no target: show the total in the largest unit given and in the base unit
+            let base = UnitsTable.all.first { $0.dim == smallest.dim && $0.factor == 1 }?.id
+            return "\(text) \(smallest.id) to " + [parts[0].1.id, base].compactMap { $0 }.filter { $0 != smallest.id }.joined(separator: ", ")
+        }
         return "\(text) \(smallest.id) \(rest)"
     }
 

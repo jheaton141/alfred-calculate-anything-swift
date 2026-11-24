@@ -16,6 +16,11 @@ public enum RatesRefresh {
         return await [fiat, crypto].joined(separator: ". ")
     }
 
+    /// True when either source reported no usable rates (offline with a stale cache still counts as refreshed).
+    public static func failed(_ summary: String) -> Bool {
+        summary.contains(": No ") || summary.hasSuffix("unavailable")
+    }
+
     private static func describe(_ label: String, _ fetch: () async throws -> RateTable, unit: String) async -> String {
         do {
             let t = try await fetch()
