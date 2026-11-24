@@ -16,12 +16,12 @@ public struct Settings: Equatable {
 
     public init(environment env: [String: String]) {
         self.init()
-        if let v = env["decimals"].flatMap(Int.init) { decimals = v }
+        if let v = env["decimals"].flatMap(Int.init) { decimals = min(max(v, 0), 12) }
         if let v = env["decimal_separator"], v == "," { decimalSeparator = ","; thousandsSeparator = "." }
         if let v = env["base_currency"], !v.isEmpty { baseCurrency = v.uppercased() }
         if let v = env["currency_cache_hours"].flatMap(Double.init) { fiatCacheHours = v }
-        if let v = env["base_pixels"].flatMap(Double.init) { basePixels = v }
-        if let v = env["vat_percentage"].flatMap(Double.init) { vatPercentage = v }
+        if let v = (env["base_pixels"] ?? env["pixels_base"]).flatMap(Double.init) { basePixels = v }
+        if let v = (env["vat_percentage"] ?? env["vat_value"]).flatMap(Double.init) { vatPercentage = v }
         if let v = env["language"], !v.isEmpty { language = v }
     }
 }

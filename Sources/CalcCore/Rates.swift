@@ -16,8 +16,9 @@ public struct RateTable: Codable, Equatable {
     public func convert(_ amount: Double, from: String, to: String) -> Double? {
         let f = from.uppercased(), t = to.uppercased()
         func rate(_ c: String) -> Double? { c == base.uppercased() ? 1 : rates[c] ?? rates[c.lowercased()] }
-        guard let rf = rate(f), let rt = rate(t), rf != 0 else { return nil }
-        return amount / rf * rt
+        guard let rf = rate(f), let rt = rate(t), rf > 0, rt > 0 else { return nil }
+        let out = amount / rf * rt
+        return out.isFinite ? out : nil
     }
 }
 

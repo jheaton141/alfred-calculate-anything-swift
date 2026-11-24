@@ -49,7 +49,7 @@ public struct PercentageTool: Tool {
         }
 
         // A is what % of B
-        let what = "(?:is what ?(?:%|percent)(?: of)?|as an? ?(?:%|percent)(?: of)?|%)"
+        let what = "(?:is what ?(?:%|percent)(?: of)?|as an? ?(?:%|percent)(?: of)?)"
         if let g = ToolSupport.match("\(sn) ?\(what) ?\(sn)", in: q), let a = num(g[0]), let b = num(g[1]) {
             return isWhatPercent(a, b, context)
         }

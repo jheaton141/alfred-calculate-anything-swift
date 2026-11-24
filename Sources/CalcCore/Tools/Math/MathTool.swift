@@ -30,6 +30,8 @@ struct MathParser {
     private var pos = 0
     private let settings: Settings
     private(set) var sawOperation = false
+    private var depth = 0
+    private static let maxDepth = 100
 
     init(_ chars: [Character], settings: Settings) { self.chars = chars; self.settings = settings }
 
@@ -81,6 +83,9 @@ struct MathParser {
     }
 
     private mutating func unary() throws -> Double {
+        depth += 1
+        defer { depth -= 1 }
+        guard depth < Self.maxDepth else { throw MathTool.EvalError.syntax }
         if let c = peek(), c == "-" || c == "+" {
             pos += 1
             let v = try unary()

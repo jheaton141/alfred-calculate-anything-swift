@@ -98,3 +98,4 @@ tests.txt
 .DS_Store
 vendor/
 .build*/
+Packaging/dist/

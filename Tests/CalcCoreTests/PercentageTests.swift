@@ -25,7 +25,7 @@ final class PercentageTests: XCTestCase {
         // reversed: larger number first reads as decrease then increase
         XCTAssertEqual(run("200 is what % of 50")?.map(\.title), [
             "200 is 400% of 50", "The percentage increase from 50 to 200 is 300%", "The percentage decrease from 200 to 50 is 75%"])
-        XCTAssertEqual(run("50 % 200")?.first?.title, "50 is 25% of 200")
+        XCTAssertNil(run("50 % 200"), "bare A % B is modulo, handled by MathTool")
         XCTAssertEqual(run("50 as a % of 200")?.first?.title, "50 is 25% of 200")
         XCTAssertEqual(run("5 is what % of 0")?.first?.valid, false)
     }

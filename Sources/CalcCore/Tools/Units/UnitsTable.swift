@@ -177,7 +177,7 @@ enum UnitsTable {
         let key = normalize(text)
         guard !key.isEmpty else { return [] }
         var ids = index[key]
-        if ids == nil, key.hasSuffix("s") { ids = index[String(key.dropLast())] }
+        if ids == nil, key.count > 2, key.hasSuffix("s") { ids = index[String(key.dropLast())] }
         return (ids ?? []).compactMap { byId[$0] }
     }
 

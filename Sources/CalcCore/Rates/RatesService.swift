@@ -94,8 +94,12 @@ public final class RatesService: RatesProviding {
 
         var rates = cached?.rates ?? [:]
         for (sym, price) in got where price > 0 { rates[sym] = 1 / price }
-        let table = RateTable(base: "USD", rates: rates, fetchedAt: fresh ? (cached?.fetchedAt ?? now()) : now(), source: source)
+        // Symbols that missed this refresh keep their old price, so an expired table stays expired and is flagged stale.
+        let refreshedAll = have.allSatisfy { got[$0] != nil }
+        let stamp = fresh || !refreshedAll ? (cached?.fetchedAt ?? now()) : now()
+        var table = RateTable(base: "USD", rates: rates, fetchedAt: stamp, source: source)
         writeCache(table, file)
+        table.stale = !fresh && !refreshedAll
         return table
     }
 
@@ -135,7 +139,10 @@ public final class RatesService: RatesProviding {
 
     // MARK: Cache
 
-    private func isFresh(_ t: RateTable, ttl: Double) -> Bool { now().timeIntervalSince(t.fetchedAt) < ttl }
+    private func isFresh(_ t: RateTable, ttl: Double) -> Bool {
+        let age = now().timeIntervalSince(t.fetchedAt)
+        return age >= 0 && age < ttl
+    }
 
     private func staleOrThrow(_ cached: RateTable?, _ what: String) throws -> RateTable {
         guard var c = cached else { throw RatesError.unavailable("No \(what) rates: network unavailable and nothing cached") }
@@ -147,7 +154,9 @@ public final class RatesService: RatesProviding {
 
     private func readCache(_ name: String) -> RateTable? {
         guard let data = try? Data(contentsOf: dataDir.appendingPathComponent(name)) else { return nil }
-        return try? decoder().decode(RateTable.self, from: data)
+        guard var t = try? decoder().decode(RateTable.self, from: data) else { return nil }
+        t.rates = t.rates.filter { $0.value > 0 && $0.value.isFinite }
+        return t.rates.isEmpty ? nil : t
     }
 
     private func writeCache(_ table: RateTable, _ name: String) {
