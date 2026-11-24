@@ -92,3 +92,8 @@ assets/update.afphoto
 *.lock
 tests.txt
 .ddev/config.yaml
+.remember/
+.data/
+.build/
+.DS_Store
+vendor/

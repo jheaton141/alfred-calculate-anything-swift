@@ -1,0 +1,54 @@
+# Fork plan: alfred-calculate-anything -> Swift
+
+Upstream: https://github.com/biati-digital/alfred-calculate-anything (MIT, PHP, ~9k lines, dormant since Jan 2024).
+Toolchain on this Mac: Swift 6.4.2, Xcode installed.
+
+## Goals
+1. Remove the PHP runtime dependency (compiled universal binary).
+2. Remove every API key (keyless fiat + crypto rates, disk cache, offline fallback).
+3. Fix the open upstream issues and add the missing features.
+
+## Remote and licence
+- Upstream cloned into this folder with history; upstream kept as `upstream` remote.
+- `origin` created on self-hosted Gitea with `gitea-init` (private by default). No GitHub fork is created unless you ask.
+- MIT licence retained; add a fork notice to the README.
+
+## Architecture
+- Swift package, single executable target `calc` plus library target `CalcCore` (parsing, units, rates) so it is unit-testable.
+- Alfred Script Filter contract: `calc "<query>"` prints Alfred JSON (`items`). The `info.plist` workflow calls the binary directly.
+- Local storage (this folder, per your instruction): `./.data/` holds `rates-fiat.json`, `rates-crypto.json` and `settings.json`. At install time the path is Alfred's workflow data dir (`alfred_workflow_data`), with the folder above as the dev default.
+- Dependencies: none beyond Foundation (dates and timezones via `Foundation.TimeZone`; replaces `jenssegers/date`).
+
+## Rates (no keys)
+| Need | Primary | Fallback |
+|---|---|---|
+| Fiat | Frankfurter (ECB) | fawazahmed0/currency-api (CDN, 200+ currencies) |
+| Crypto | CoinGecko public `simple/price` | Coinbase public spot price (Binance returns HTTP 451 from the US) |
+- Cache with a TTL (default 6 h fiat, 5 min crypto); on network failure serve the stale cache and label it as stale in the subtitle.
+- Endpoints, limits and terms are verified by live calls in phase 2 before they are relied on.
+
+## Phases
+1. **Characterize upstream (tests first).** Build a corpus of query -> expected output from the PHP version (runs under `brew php`) across units, percentage, VAT, px/em/rem, data storage, colour, time. These become golden tests for the Swift port. This is the "old vs new on real inputs" equivalence check.
+2. **Rates layer.** Fetchers, cache, fallback, tests with recorded fixtures plus a live smoke test.
+3. **Port tools in order of risk:** units (table-driven), data storage, percentage, VAT, px/em/rem, currency, crypto, time/dates, colour. Language packs (`en`, `es`, `sv`) move from PHP arrays to JSON.
+4. **Alfred packaging.** Universal (arm64 + x86_64) build, ad-hoc or Developer ID signing, notarization if you have a certificate, new `info.plist`, `.alfredworkflow` bundle script.
+5. **Features and fixes** (each with a failing test first):
+   - Units: cups, tsp, tbsp, UK pint and gallon, ml to fl oz without specifying the type, area units, correct feet for exact multiples of 12 inches.
+   - Number suffixes (`10M eur in usd`, k/M/B/T).
+   - Timezone conversions (`3pm EST in Tokyo`).
+   - Bugs: percentage calculation edge case, `1.234,56` format in percentages, date conversion on macOS 15+.
+   - Offline cached rates; no key settings at all.
+6. **Verification.** Full test suite, golden-corpus comparison against PHP with a per-case diff report (intended differences listed), then an adversarial subagent pass on the final diff.
+
+## Execution
+Phases 1 and 2 are independent and can run in parallel with subagents; 3 needs the shared `CalcCore` types written first by the main session; 4 and 5 follow.
+
+## Open decisions
+- Signing: ad-hoc (users right-click Open once) or Developer ID + notarization?
+- Keep `en`/`es`/`sv` languages only, or English only first?
+- Gitea repo name: `alfred-calculate-anything-swift` unless you prefer another.
+
+## Progress log
+- Phase 0 done: branch `feat/swift-rewrite`, Gitea origin `Joe/alfred-calculate-anything-swift`, upstream remote kept.
+- Endpoint probe (2026-11-23): Frankfurter 200, fawazahmed0 (fiat and crypto) 200, CoinGecko 200, Coinbase spot 200, Binance 451 (blocked from the US, dropped).
+- Phase 1 started: `tests/golden/` holds 69 queries and the PHP outputs (`expected_php.jsonl`, regenerate with `run_php_corpus.sh`). The corpus already exposes upstream bugs that Swift should fix on purpose: 100 F to C gives 37.7, 30 C to K gives 303.1, UK gallon gives 4.405, 1 ml to oz errors, and cup, tbsp, tsp, stone, area units and "what is 20% of 150" return nothing. Currency, crypto and time are not in the PHP corpus (they need keys or the Date package) and get fixture tests in Swift instead.
