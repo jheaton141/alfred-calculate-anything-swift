@@ -65,7 +65,7 @@ English, Spanish and Swedish packs for the result text are built into the binary
 
 ```sh
 swift build
-swift test                   # 130 tests; set RUN_LIVE=1 to include the live-network test
+swift test                   # 145 tests; set RUN_LIVE=1 to include the live-network test
 ./.build/debug/calc "20% of 150"
 Tests/golden/compare.sh      # compares the Swift output with the original PHP over a query corpus
 ```
@@ -77,10 +77,10 @@ The original PHP sources (`workflow/`, `process.php`, `lang/`, `composer.json`) 
 ## Known limitations
 
 - Rate sources are free services with no guarantee; if all are down you get cached rates labelled as stale, or an error if nothing was ever cached.
-- Years beyond about 400,000, dates before 1582, and local times that fall inside a daylight-saving gap are handled approximately.
-- Month arithmetic clamps to the last day of the month (`2025-01-31 + 1 month` is Feb 28).
-- Bare 10- or 13-digit numbers are read as timestamps.
-- Alpha is dropped when converting to hsv, hwb, cmyk, lab, lch and xyz.
+- Dates beyond about year 200,000 return "not a valid date".
+- Month arithmetic clamps to the last day of the month (`2025-01-31 + 1 month` is Feb 28; upstream PHP gives Mar 3).
+- Bare 10- or 13-digit numbers are read as timestamps, as upstream does.
+- Lab and lch print two decimals, so converting them back may differ by one in the last digit.
 
 ## License
 
