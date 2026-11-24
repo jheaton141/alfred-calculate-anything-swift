@@ -1,7 +1,7 @@
 import Foundation
 
 enum UnitDimension: String {
-    case length, area, volume, mass, speed, time, temperature, pressure, energy, power, angle, count
+    case length, area, volume, mass, speed, time, temperature, pressure, energy, power, angle, count, fuel
 }
 
 struct UnitDef {
@@ -141,6 +141,11 @@ enum UnitsTable {
         u("k", .temperature, "k", 1, ["kelvin", "kelvins"]),
         u("c", .temperature, "c", 1, ["celsius", "°c", "degc"]),
         u("f", .temperature, "f", 1, ["fahrenheit", "fahrenheits", "°f", "degf"]),
+        // fuel economy (base km/l; l/100km is the inverse, handled in the converter)
+        u("kmpl", .fuel, "km/l", 1, ["km/l", "kpl", "kmperl", "kilometersperliter"]),
+        u("mpg", .fuel, "mpg", 1.609344 / 3.785411784, ["mpgus", "usmpg", "milespergallon"]),
+        u("ukmpg", .fuel, "mpg (uk)", 1.609344 / 4.54609, ["mpguk", "mpgimp", "impmpg", "ukmilespergallon"]),
+        u("l100km", .fuel, "l/100km", 1, ["l/100km", "lper100km", "litersper100km", "lp100km"]),
         // pressure (base Pa)
         u("pa", .pressure, "pa", 1, ["pascal"]),
         u("hpa", .pressure, "hpa", 100, ["hectopascal"]),

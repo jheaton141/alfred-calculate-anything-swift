@@ -151,6 +151,19 @@
 				<false/>
 			</dict>
 		</array>
+		<key>24968BC2-63D9-4463-ACC0-C7048105AFD5</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>FBCDE425-3980-4B3D-B072-E7C0BD5543D3</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 		<key>2653CF8F-012F-425F-B0AB-8E7FA69D882B</key>
 		<array>
 			<dict>
@@ -411,6 +424,19 @@
 				<false/>
 			</dict>
 		</array>
+		<key>9AF74FE6-D0BD-4537-B5D0-451A6029854C</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>ABA18E77-71E3-494A-8735-A60799F419B9</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 		<key>9B97B9DE-FB12-4F5A-AAF8-4608DF0C7B14</key>
 		<array>
 			<dict>
@@ -483,6 +509,19 @@
 			<dict>
 				<key>destinationuid</key>
 				<string>ABA18E77-71E3-494A-8735-A60799F419B9</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>BB507266-A380-484E-8378-CCAB2BC9BC96</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>24968BC2-63D9-4463-ACC0-C7048105AFD5</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -2986,15 +3025,130 @@ echo "Cache cleared"</string>
 			<key>version</key>
 			<integer>3</integer>
 		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argumenttype</key>
+				<integer>2</integer>
+				<key>keyword</key>
+				<string>_carefresh</string>
+				<key>subtext</key>
+				<string>Refresh exchange and crypto rates now</string>
+				<key>text</key>
+				<string>Calculate Anything Refresh Rates</string>
+				<key>withspace</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.keyword</string>
+			<key>uid</key>
+			<string>BB507266-A380-484E-8378-CCAB2BC9BC96</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>./calc --refresh</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>24968BC2-63D9-4463-ACC0-C7048105AFD5</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>lastpathcomponent</key>
+				<false/>
+				<key>onlyshowifquerypopulated</key>
+				<false/>
+				<key>removeextension</key>
+				<false/>
+				<key>text</key>
+				<string>{query}</string>
+				<key>title</key>
+				<string>Calculate Anything</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.notification</string>
+			<key>uid</key>
+			<string>FBCDE425-3980-4B3D-B072-E7C0BD5543D3</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<false/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>0</integer>
+				<key>escaping</key>
+				<integer>0</integer>
+				<key>keyword</key>
+				<string>tip</string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>2</integer>
+				<key>runningsubtext</key>
+				<string>Calculating...</string>
+				<key>script</key>
+				<string>./calc "tip $1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>Enter a bill, e.g. 85 at 18% split 3</string>
+				<key>title</key>
+				<string>Calculate Tip</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>9AF74FE6-D0BD-4537-B5D0-451A6029854C</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
 	</array>
 	<key>readme</key>
 	<string>Calculate Anything is a native Swift Alfred workflow: no PHP, no API keys.
 
-Type a calculation that starts with a digit, or use a keyword: calc, =, #, (, %, vat, time, rgb, hsl, sqrt, what, days, contrast, lighten, darken and more.
+Type a calculation that starts with a digit, or use a keyword: calc, =, #, (, %, vat, tip, time, rgb, hsl, sqrt, what, days, contrast, lighten, darken and more.
 
-Examples: 100 usd to eur, 10 km to mi, 20% of 150, 255 to hex, 3pm in PT, #ff8800, calc what is 20% of 150.
+Examples: 100 usd to eur, 10 km to mi, 5 ft 3 in to cm, tip 85 at 18% split 3, time 10 days after 2026-12-25, 20% of 150, 255 to hex, 3pm in PT, #ff8800, calc what is 20% of 150.
 
 Rates come from Frankfurter, fawazahmed0/currency-api, CoinGecko and Coinbase, cached on disk, with an offline fallback.
+_caclear clears cached rates and _carefresh refreshes them now.
 Source and docs: see the repository README.</string>
 	<key>uidata</key>
 	<dict>
@@ -3074,6 +3228,13 @@ Source and docs: see the repository README.</string>
 			<integer>640</integer>
 			<key>ypos</key>
 			<integer>1000</integer>
+		</dict>
+		<key>24968BC2-63D9-4463-ACC0-C7048105AFD5</key>
+		<dict>
+			<key>xpos</key>
+			<integer>330</integer>
+			<key>ypos</key>
+			<integer>2060</integer>
 		</dict>
 		<key>2653CF8F-012F-425F-B0AB-8E7FA69D882B</key>
 		<dict>
@@ -3215,6 +3376,13 @@ Source and docs: see the repository README.</string>
 			<key>ypos</key>
 			<integer>1200</integer>
 		</dict>
+		<key>9AF74FE6-D0BD-4537-B5D0-451A6029854C</key>
+		<dict>
+			<key>xpos</key>
+			<integer>80</integer>
+			<key>ypos</key>
+			<integer>1765</integer>
+		</dict>
 		<key>9B97B9DE-FB12-4F5A-AAF8-4608DF0C7B14</key>
 		<dict>
 			<key>xpos</key>
@@ -3263,6 +3431,13 @@ Source and docs: see the repository README.</string>
 			<integer>80</integer>
 			<key>ypos</key>
 			<integer>710</integer>
+		</dict>
+		<key>BB507266-A380-484E-8378-CCAB2BC9BC96</key>
+		<dict>
+			<key>xpos</key>
+			<integer>80</integer>
+			<key>ypos</key>
+			<integer>2060</integer>
 		</dict>
 		<key>BEA1F80D-6781-4CB6-AA39-92C8A5D8BD82</key>
 		<dict>
@@ -3340,6 +3515,13 @@ Source and docs: see the repository README.</string>
 			<integer>760</integer>
 			<key>ypos</key>
 			<integer>1000</integer>
+		</dict>
+		<key>FBCDE425-3980-4B3D-B072-E7C0BD5543D3</key>
+		<dict>
+			<key>xpos</key>
+			<integer>570</integer>
+			<key>ypos</key>
+			<integer>2060</integer>
 		</dict>
 		<key>FBEA1477-E8C6-424C-BE64-9220C8197820</key>
 		<dict>

@@ -10,6 +10,9 @@ public struct UnitsTool: Tool {
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
         let verdict = ScaleFormat.check(query)
         if verdict == .skip { return nil }
+        if let compound = Self.expandCompound(query, settings: context.settings) {
+            return await evaluate(compound, context: context)
+        }
         guard let (parsed, parsedRest) = Self.splitAmount(query, settings: context.settings) else { return nil }
         var amount = parsed, rest = parsedRest
         if verdict == .overflow { amount = .infinity }
@@ -54,6 +57,37 @@ public struct UnitsTool: Tool {
         return (v, rest.trimmingCharacters(in: .whitespaces))
     }
 
+    /// "5 ft 3 in to cm": a run of amounts in descending units of one dimension, rewritten as a single amount of the smallest unit.
+    static func expandCompound(_ query: String, settings: Settings) -> String? {
+        let number = #"\d+(?:[.,]\d+)?"#
+        guard let re = try? NSRegularExpression(pattern: #"\s*("# + number + #")\s*([\p{L}'"′″]+)"#, options: []) else { return nil }
+        let ns = query as NSString
+        var parts: [(Double, UnitDef)] = []
+        var pos = 0
+        while pos < ns.length, let m = re.firstMatch(in: query, options: [.anchored], range: NSRange(location: pos, length: ns.length - pos)) {
+            guard let n = NumberFormat.parse(ns.substring(with: m.range(at: 1)), settings: settings) else { return nil }
+            let text = ns.substring(with: m.range(at: 2))
+            var found = UnitsTable.candidates(text)
+            if let first = parts.first?.1 {
+                if found.isEmpty || !found.contains(where: { $0.dim == first.dim }), text.lowercased() == "m", first.dim == .time { found = UnitsTable.candidates("min") }
+                guard let u = found.first(where: { $0.dim == first.dim }) else { return nil }
+                guard u.factor < parts[parts.count - 1].1.factor else { return nil }
+                parts.append((n, u))
+            } else {
+                guard let u = found.first else { return nil }
+                parts.append((n, u))
+            }
+            pos = m.range.location + m.range.length
+        }
+        guard parts.count >= 2, let smallest = parts.last?.1, ![.temperature, .fuel, .count].contains(smallest.dim) else { return nil }
+        let rest = ns.substring(from: pos).trimmingCharacters(in: .whitespaces)
+        guard let word = rest.split(separator: " ").first?.lowercased(), stopWords.contains(word) || rest.hasPrefix("=") else { return nil }
+        let total = parts.reduce(0.0) { $0 + $1.0 * $1.1.factor } / smallest.factor
+        var text = NumberFormat.plain(total, decimals: 10)
+        if settings.decimalSeparator != "." { text = text.replacingOccurrences(of: ".", with: String(settings.decimalSeparator)) }
+        return "\(text) \(smallest.id) \(rest)"
+    }
+
     /// "lakh", "lac" or "crore" alone after the number: the plain multiplier.
     static func bareMultiplier(_ rest: String) -> Double? {
         switch rest.lowercased() {
@@ -95,6 +129,11 @@ public struct UnitsTool: Tool {
     // MARK: conversion
 
     static func convert(_ v: Double, from: UnitDef, to: UnitDef) -> Double {
+        if from.dim == .fuel {
+            guard v > 0 else { return .nan }
+            let kmpl = from.id == "l100km" ? 100 / v : v * from.factor
+            return to.id == "l100km" ? 100 / kmpl : kmpl / to.factor
+        }
         guard from.dim == .temperature else {
             let r = v * from.factor / to.factor
             return r.isFinite ? r : v * (from.factor / to.factor)
@@ -123,7 +162,7 @@ public struct UnitsTool: Tool {
 
     private static func settingsFor(_ unit: UnitDef, _ s: Settings) -> Settings {
         var out = s
-        if unit.dim != .temperature { out.decimals = max(s.decimals, 8) }
+        if unit.dim != .temperature, unit.dim != .fuel { out.decimals = max(s.decimals, 8) }
         return out
     }
 

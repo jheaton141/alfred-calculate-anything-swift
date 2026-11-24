@@ -22,6 +22,7 @@ struct DateParser {
         "day": .day, "days": .day, "week": .week, "weeks": .week, "wk": .week, "wks": .week,
         "month": .month, "months": .month, "year": .year, "years": .year, "yr": .year, "yrs": .year,
         "weekday": .weekday, "weekdays": .weekday, "workday": .weekday, "workdays": .weekday, "wd": .weekday,
+        "business day": .weekday, "business days": .weekday, "working day": .weekday, "working days": .weekday,
     ]
     static let unitAlt = unitMap.keys.sorted { $0.count > $1.count }.joined(separator: "|")
 
@@ -163,6 +164,14 @@ struct DateParser {
             let base = g[1] == "from today" ? (parseBase("today", explicit: explicit)?.date ?? now) : now
             if let d = apply(terms, factor: ago ? -1 : 1, to: base) { return ParsedDate(date: d, hasTime: true) }
             return nil
+        }
+        if let g = ToolSupport.match(#"(.+?)\s+(after|before|from)\s+(.+)"#, in: s), let terms = parseTerms(g[0], signed: false),
+           let base = parseBase(g[2], explicit: true), let d = apply(terms, factor: g[1] == "before" ? -1 : 1, to: base.date) {
+            return ParsedDate(date: d, hasTime: true)
+        }
+        if let g = ToolSupport.match(#"(.+?)\s+in\s+(.+)"#, in: s), let terms = parseTerms(g[1], signed: false),
+           let base = parseBase(g[0], explicit: true), let d = apply(terms, to: base.date) {
+            return ParsedDate(date: d, hasTime: true)
         }
         return parseBase(s, explicit: explicit)
     }

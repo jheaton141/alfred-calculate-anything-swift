@@ -54,6 +54,8 @@ public struct TimeTool: Tool {
         if q.isEmpty || q == "now" { return dateRows(x.now, isNow: true, x) }
         if let r = timestampQuery(q, explicit: explicit, x) { return r }
         if let r = boundaryQuery(q, x) { return r }
+        if let r = calendarQuery(q, x) { return r }
+        if let r = businessDaysQuery(q, x) { return r }
         if let r = untilQuery(q, x) { return r }
         if let p = x.parser.parse(q, explicit: explicit) { return dateRows(p.date, isNow: false, x) }
         if let r = differenceQuery(q, explicit: explicit, x) { return r }
@@ -215,6 +217,68 @@ public struct TimeTool: Tool {
         return [row(title, sub, copy: String(n), raw: String(n), x)]
     }
 
+    // MARK: calendar facts
+
+    /// Weekday, day of the year and ISO week of a date: "what day is 2027-03-14", "week number of dec 25".
+    private func calendarQuery(_ q: String, _ x: Env) -> [AlfredItem]? {
+        let tail = #"\s+(?:is|was|of|for|on)\s+(.+)"#
+        var kind = "dow"
+        var text: String
+        if let g = ToolSupport.match(#"(?:what\s+)?(?:day\s+of\s+(?:the\s+)?year|day\s+number)"# + tail, in: q) { kind = "doy"; text = g[0] }
+        else if let g = ToolSupport.match(#"(?:what\s+)?(?:week\s+number|week\s+of\s+(?:the\s+)?year|iso\s+week)"# + tail, in: q) { kind = "week"; text = g[0] }
+        else if let g = ToolSupport.match(#"(?:what\s+)?(?:(?:week)?day(?:\s+of\s+(?:the\s+)?week)?)"# + tail, in: q) { text = g[0] }
+        else { return nil }
+        if text == "it" { text = "today" }
+        guard let date = x.parser.parse(text, explicit: true)?.date, TimeCal.inRange(date) else { return nil }
+        let c = TimeCal.civil(date, x.zone)
+        let doy = TimeCal.daysFromCivil(c.y, c.m, c.d) - TimeCal.daysFromCivil(c.y, 1, 1) + 1
+        let yearLength = TimeCal.isLeap(c.y) ? 366 : 365
+        let day = TimeCal.fmt("l", date, x.zone, x.strings)
+        let when = TimeCal.fmt("Y-m-d", date, x.zone, x.strings)
+        let week = TimeCal.fmt("W", date, x.zone, x.strings), weekYear = TimeCal.fmt("o", date, x.zone, x.strings)
+        let rows: [String: AlfredItem] = [
+            "dow": row(day, String(format: ToolSupport.tr(x.strings, "cal_weekday", "Day of the week for %@"), when), raw: day, x),
+            "doy": row("\(ToolSupport.tr(x.strings, "cal_day", "Day")) \(doy) / \(yearLength)", String(format: ToolSupport.tr(x.strings, "cal_doy", "Day of the year for %@"), when), copy: String(doy), raw: String(doy), x),
+            "week": row("\(ToolSupport.tr(x.strings, "cal_week", "Week")) \(Int(week) ?? 0)", String(format: ToolSupport.tr(x.strings, "cal_isoweek", "ISO week %@-W%@ for %@"), weekYear, week, when), copy: String(Int(week) ?? 0), raw: String(Int(week) ?? 0), x),
+        ]
+        let order = [kind] + ["dow", "doy", "week"].filter { $0 != kind }
+        return order.compactMap { rows[$0] }
+    }
+
+    // MARK: business days
+
+    /// Weekdays after the start day up to and including the end day; day 0 (1970-01-01) was a Thursday.
+    private func weekdayCount(from a: Date, to b: Date, _ x: Env) -> Int {
+        func upTo(_ c: Civil) -> Int {
+            let days = TimeCal.daysFromCivil(c.y, c.m, c.d) + 4   // Monday-based: 0 = Monday of week zero
+            let n = days + 1
+            return TimeCal.floorDiv(n, 7) * 5 + min(((n % 7) + 7) % 7, 5)
+        }
+        return max(0, upTo(TimeCal.civil(b, x.zone)) - upTo(TimeCal.civil(a, x.zone)))
+    }
+
+    /// "business days until 2027-01-01", "working days since monday", "business days between a and b" (weekends only, no holidays).
+    private func businessDaysQuery(_ q: String, _ x: Env) -> [AlfredItem]? {
+        let unit = #"(?:business|working|work)\s+days?|weekdays?"#
+        var from = x.now, to = x.now
+        var showAgo = false
+        if let g = ToolSupport.match("(?:" + unit + #")\s+between\s+(.+?)\s+and\s+(.+)"#, in: q) {
+            guard let a = x.parser.parse(g[0], explicit: true)?.date, let b = x.parser.parse(g[1], explicit: true)?.date else { return nil }
+            (from, to) = a <= b ? (a, b) : (b, a)
+        } else if let g = ToolSupport.match("(?:" + unit + #")\s+(until|till|since|to)\s+(.+)"#, in: q) {
+            guard var t = x.parser.parse(g[1], explicit: true) else { return nil }
+            let until = g[0] != "since"
+            if t.yearImplicit, let shifted = TimeCal.add(.year, until ? (t.date < x.now ? 1 : 0) : (t.date > x.now ? -1 : 0), to: t.date, in: x.zone) { t.date = shifted }
+            (from, to) = until ? (x.now, t.date) : (t.date, x.now)
+            showAgo = until
+        } else { return nil }
+        guard TimeCal.inRange(from), TimeCal.inRange(to) else { return [invalid(x)] }
+        let past = to < from
+        let n = past ? weekdayCount(from: to, to: from, x) : weekdayCount(from: from, to: to, x)
+        let title = past && showAgo && n > 0 ? agoText(plural(n, "day", x), x) : plural(n, "day", x)
+        return [row(title, ToolSupport.tr(x.strings, "business_days_sub", "Business days (Mon-Fri, holidays not counted)"), copy: String(n), raw: String(n), x)]
+    }
+
     // MARK: differences
 
     private func differenceQuery(_ q: String, explicit: Bool, _ x: Env) -> [AlfredItem]? {
@@ -254,6 +318,8 @@ public struct TimeTool: Tool {
               let m = re.firstMatch(in: q, range: NSRange(location: 0, length: (q as NSString).length)) else { return nil }
         let left = (q as NSString).substring(to: m.range.location)
         let right = (q as NSString).substring(from: m.range.location + m.range.length)
+        // "3pm in 5 days" is a date, not a zone conversion
+        if x.parser.parseTerms(right, signed: false) != nil { return nil }
 
         var srcZone = ResolvedZone(zone: x.zone)
         var instant = x.now
