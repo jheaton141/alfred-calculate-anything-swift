@@ -5883,6 +5883,6 @@ Source and docs: see the repository README.</string>
 	<key>version</key>
 	<string>5.0.0</string>
 	<key>webaddress</key>
-	<string>https://github.com/biati-digital/alfred-calculate-anything</string>
+	<string>https://github.com/jheaton141/alfred-calculate-anything-swift</string>
 </dict>
 </plist>
