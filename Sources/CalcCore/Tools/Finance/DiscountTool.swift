@@ -105,6 +105,11 @@ public struct DiscountTool: Tool {
 
     private static func clean(_ query: String) -> String {
         let q = ToolSupport.normalize(query).replacingOccurrences(of: #"[$€£¥]|\b(?:usd|eur|gbp|jpy|cad|aud|chf|cny|inr|sek|nok|dkk|mxn|brl)\b"#, with: " ", options: .regularExpression)
-        return q.split(separator: " ").joined(separator: " ")
+        var out = q.split(separator: " ").joined(separator: " ")
+        // keyword forms: "tax 8% on 80", "tax 80 at 8%"
+        let n = "(" + ToolSupport.number + ")"
+        if let g = ToolSupport.match("tax\\s+" + n + "\\s*%\\s*(?:on|of)\\s*" + n, in: out) { out = "\(g[0])% tax on \(g[1])" }
+        else if let g = ToolSupport.match("tax\\s+" + n + "\\s*(?:at|@|with|plus)?\\s*" + n + "\\s*%", in: out) { out = "\(g[0]) plus \(g[1])% tax" }
+        return out
     }
 }

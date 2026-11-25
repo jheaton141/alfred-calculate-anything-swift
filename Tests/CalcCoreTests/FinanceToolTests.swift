@@ -85,6 +85,8 @@ final class DiscountToolTests: XCTestCase {
     func testTax() {
         XCTAssertEqual(d("80 plus 8% tax"), ["Total 86.4", "Tax 6.4"])
         XCTAssertEqual(d("8% tax on 80"), ["Total 86.4", "Tax 6.4"])
+        XCTAssertEqual(d("tax 8% on 80"), ["Total 86.4", "Tax 6.4"])
+        XCTAssertEqual(d("tax 80 at 8%"), ["Total 86.4", "Tax 6.4"])
         XCTAssertEqual(d("108 incl 8% tax"), ["Before tax 100", "Tax 8", "Total 108"])
     }
 
