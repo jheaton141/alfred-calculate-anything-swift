@@ -16,7 +16,8 @@ final class FractionToolTests: XCTestCase {
     func testArithmetic() {
         XCTAssertEqual(f("1/3 + 1/4")?.first, "7/12")
         XCTAssertEqual(f("1 1/2 * 3"), ["9/2", "4 1/2", "4.5"])
-        XCTAssertEqual(f("3/4 / 1/2")?.first, "3/2")
+        XCTAssertEqual(f("frac 3/4 / 1/2")?.first, "3/2")
+        XCTAssertNil(f("1/2 / 1/4"))   // spaced division stays with the math tool
         XCTAssertEqual(f("1/2 - 3/4")?.first, "-1/4")
         XCTAssertEqual(f("(1/2 + 1/3) * 6"), ["5"])
         XCTAssertEqual(f("3/4 of 80"), ["60"])
@@ -50,7 +51,7 @@ final class FractionToolTests: XCTestCase {
 
     func testErrors() {
         XCTAssertEqual(f("1/0 + 1/2"), ["Cannot divide by zero"])
-        XCTAssertEqual(f("1/2 / 0/1"), ["Cannot divide by zero"])
+        XCTAssertEqual(f("frac 1/2 / 0/1"), ["Cannot divide by zero"])
         XCTAssertEqual(f("frac 99999999999/3 * 99999999999/7"), ["Invalid input"])
         XCTAssertNil(f("99999999999/3 * 99999999999/7"))
     }
@@ -118,5 +119,23 @@ final class DiscountToolTests: XCTestCase {
         XCTAssertEqual(d("cost 0 markup 50%"), ["Invalid input"])
         XCTAssertNil(d("cost 60"))
         XCTAssertNil(d("2 + 2"))
+    }
+}
+
+final class ReviewRoundTwoTests: XCTestCase {
+    func testLongInputIsRejectedFast() {
+        let long = String(repeating: "1", count: 20_000)
+        XCTAssertNil(titles(InterestTool(), long))
+        XCTAssertNil(titles(DiscountTool(), long))
+    }
+
+    func testFromToIsNotAPriceChange() {
+        XCTAssertNil(titles(DiscountTool(), "from 10 to 20"))
+        XCTAssertEqual(titles(DiscountTool(), "was 80 now 60")?.first, "Discount 25%")
+    }
+
+    func testBareLakhShowsNumber() async {
+        let out = await Engine(tools: DefaultEngine.tools()).run("10 lakh", context: Context(settings: Settings(), dataDir: URL(fileURLWithPath: "/tmp")))
+        XCTAssertEqual(out.items.first?.title, "1,000,000")
     }
 }

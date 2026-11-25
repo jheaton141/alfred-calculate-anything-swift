@@ -6,6 +6,7 @@ public struct DiscountTool: Tool {
     public init() {}
 
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
+        guard query.count <= 200 else { return nil }
         let q = Self.clean(query)
         let s = context.settings, str = context.strings
         func num(_ t: String) -> Double? { NumberFormat.parse(t, settings: s) }
@@ -51,7 +52,7 @@ public struct DiscountTool: Tool {
             return [money("Total", "\(ToolSupport.fmt(price, s)) plus \(ToolSupport.plainLocal(rate, decimals: 4, s))% tax", price * (1 + rate / 100)), money("Tax", "\(ToolSupport.plainLocal(rate, decimals: 4, s))% of \(ToolSupport.fmt(price, s))", price * rate / 100)]
         }
         // Price change: "was 80 now 60"
-        if let g = ToolSupport.match(#"(?:was|from|old)\s*"# + n + #"\s*(?:now|to|new)\s*"# + n, in: q), let was = num(g[0]), let now = num(g[1]) {
+        if let g = ToolSupport.match(#"(?:was|old)\s*"# + n + #"\s*(?:now|to|new)\s*"# + n, in: q), let was = num(g[0]), let now = num(g[1]) {
             guard ok(was, now), was > 0 else { return bad }
             let change = (now - was) / was * 100
             guard change.isFinite else { return bad }

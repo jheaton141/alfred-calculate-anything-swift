@@ -43,6 +43,7 @@ public struct FractionTool: Tool {
             q = String(q.dropLast(suffix.count)); explicit = true
         }
         if q.range(of: #"^\(?\d+/\d+ of "#, options: .regularExpression) != nil { q = q.replacingOccurrences(of: " of ", with: " * "); explicit = true }
+        if !explicit, q.contains(" / ") || q.contains("÷") { return nil }   // spaced division keeps the math tool's left-to-right reading
         let wantsDecimalInput = explicit
         if context.settings.decimalSeparator == "," {
             guard !q.contains(".") else { return nil }   // "." is a thousands separator here; leave it to the math tool

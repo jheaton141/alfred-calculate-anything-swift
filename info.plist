@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>bundleid</key>
-	<string>com.alfred.calculateanything</string>
+	<string>com.calculateanything.swift</string>
 	<key>category</key>
 	<string>Tools</string>
 	<key>connections</key>
@@ -755,7 +755,7 @@
 		</array>
 	</dict>
 	<key>createdby</key>
-	<string>Biati Digital</string>
+	<string>Swift fork of Calculate Anything by Biati Digital</string>
 	<key>description</key>
 	<string>Calculate Anything</string>
 	<key>disabled</key>

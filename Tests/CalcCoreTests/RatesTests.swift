@@ -3,9 +3,11 @@ import XCTest
 
 fileprivate final class FakeHTTP: HTTPFetching {
     var routes: [String: Data] = [:]
-    var calls: [String] = []
+    private let lock = NSLock()
+    private var log: [String] = []
+    var calls: [String] { lock.lock(); defer { lock.unlock() }; return log }
     func get(_ url: URL) async throws -> Data {
-        calls.append(url.absoluteString)
+        lock.lock(); log.append(url.absoluteString); lock.unlock()
         for (prefix, data) in routes where url.absoluteString.hasPrefix(prefix) { return data }
         throw URLError(.notConnectedToInternet)
     }

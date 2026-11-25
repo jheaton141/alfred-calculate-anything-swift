@@ -24,6 +24,9 @@ cp "${BIN}" "${STAGE}/calc"
 cp "${ROOT}/info.plist" "${STAGE}/info.plist"
 cp "${ROOT}/icon.png" "${STAGE}/icon.png"
 
+# Per-object icons named after the object UID.
+for png in "${ROOT}"/[0-9A-F]*-*-*-*-*.png(N); do cp "${png}" "${STAGE}/"; done
+
 # Copy only the files the plist readme references.
 for ref in ${(f)"$(grep -o '\./assets/[A-Za-z0-9_./-]*' "${ROOT}/info.plist" | sort -u)"}; do
   mkdir -p "${STAGE}/${ref:h}"

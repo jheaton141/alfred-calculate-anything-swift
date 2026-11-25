@@ -31,6 +31,10 @@ public struct Engine {
         for tool in tools {
             if let items = await tool.evaluate(q, context: context) { return AlfredOutput(items: items) }
         }
+        // A bare "10 lakh" has expanded to a plain number: show it.
+        if q != trimmed, let v = NumberFormat.parse(q, settings: context.settings), v.isFinite {
+            return AlfredOutput(items: [.value(title: ToolSupport.show(v, context.settings), copy: ToolSupport.show(v, context.settings), raw: ToolSupport.rawValue(v, context.settings), strings: context.strings)])
+        }
         return AlfredOutput()
     }
 }

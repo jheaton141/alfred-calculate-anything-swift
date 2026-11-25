@@ -10,7 +10,7 @@ public struct InterestTool: Tool {
         (["annually", "yearly", "annual"], 1), (["quarterly"], 4), (["monthly"], 12), (["weekly"], 52), (["daily"], 365)]
 
     public func evaluate(_ query: String, context: Context) async -> [AlfredItem]? {
-        guard let p = Self.parse(ToolSupport.normalize(query), context.settings) else { return nil }
+        guard query.count <= 200, let p = Self.parse(ToolSupport.normalize(query), context.settings) else { return nil }
         let s = context.settings, str = context.strings
         guard p.principal >= 0, p.principal <= 1e12, p.rate >= 0, p.rate <= 1_000, p.years > 0, p.years <= 1_000,
               p.deposit >= 0, p.deposit <= 1e12, p.principal > 0 || p.deposit > 0 else { return [ToolSupport.invalidInput(str)] }
