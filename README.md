@@ -19,9 +19,9 @@ Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter
 | Tool | Try |
 | --- | --- |
 | Math | `12*(3+4)`, `2^10`, `sqrt(144)`, `50 % 7`, `1.5k * 3`, `10 + 5 * 2` |
-| Currency | `100 usd to eur`, `100€ to $`, `100 usd mxn`, `120 euros` (converts to your base currency) |
+| Currency | `100 usd to eur`, `100€ to $`, `100 usd mxn`, `100 pounds to usd`, `350 nis to usd`, `1200 taka to usd`, `120 euros` (converts to your base currency) |
 | Crypto | `1 btc to usd`, `0.5 eth to eur` |
-| Units | `10 km to mi`, `100 f to c`, `2 cups to ml`, `5 stone to kg`, `3 tbsp to tsp`, `1 acre to m2`, `1 furlong to m`, `10 lakh` (shows 1,000,000), `5 lakh usd to eur`, `3.2e-5 m to mm`, `5 ft 3 in to cm`, `1h 30m to min`, `30 mpg to l/100km` |
+| Units | `10 km to mi`, `100 f to c`, `2 cups to ml`, `5 stone to kg`, `3 tbsp to tsp`, `1 acre to m2`, `1 furlong to m`, `10 lakh` (shows 1,000,000), `5 lakh usd to eur`, `3.2e-5 m to mm`, `5 ft 3 in to cm`, `1h 30m to min`, `30 mpg to l/100km`, `1 newton to lbf`. An amount with no target shows two or three common conversions: `10 km`, `100 f`, `1 lb`, `5 cups`. `8 oz` lists weight and fluid separately. `10k` and `5M` stay number suffixes. |
 | Data storage | `2 gb to mb`, `400 MiB to kib` |
 | Percentage | `20% of 150`, `what is 20% of 150`, `150 + 20%`, `20% off 150`, `50 is what % of 200`, `20 is 10% of what`, `% change from 50 to 75` |
 | px / em / rem | `12px to em`, `1.5rem to px` |
@@ -76,7 +76,7 @@ English, Spanish and Swedish packs for the result text are built into the binary
 
 ```sh
 swift build
-swift test                   # 268 tests; set RUN_LIVE=1 to include the live-network test
+swift test                   # 275 tests; set RUN_LIVE=1 to include the live-network test
 ./.build/debug/calc "20% of 150"
 Tests/golden/compare.sh      # compares the Swift output with recorded upstream outputs over a query corpus
 ```
@@ -87,6 +87,7 @@ The golden corpus in `Tests/golden/` holds outputs recorded from the upstream wo
 
 ## Known limitations
 
+- A bare `pound` is a weight (`1 pound` gives kg and oz). It means sterling only with a money target (`100 pounds to usd`, `100 usd to pounds`), or as `£100` or `100 gbp`.
 - Keywords typed alone (`frac`, `invest`, `tax`) and invalid interest inputs such as a negative rate return no rows.
 - Changing the bundle id (`com.calculateanything.swift`) means Alfred imports this fork next to, not over, the upstream workflow; delete the old one.
 - Rate sources are free services with no guarantee; if all are down you get cached rates labelled as stale, or an error if nothing was ever cached.

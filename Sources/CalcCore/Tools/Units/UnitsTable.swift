@@ -1,7 +1,7 @@
 import Foundation
 
 enum UnitDimension: String {
-    case length, area, volume, mass, speed, time, temperature, pressure, energy, power, angle, count, fuel
+    case length, area, volume, mass, speed, time, temperature, pressure, energy, power, angle, count, fuel, force
 }
 
 struct UnitDef {
@@ -176,6 +176,12 @@ enum UnitsTable {
         u("megawatt", .power, "megawatt", 1e6, ["megawatts"]),
         u("ps", .power, "ps", 735.49875, ["metrichorsepower"]),
         u("hp", .power, "hp", 745.69987158227022, ["horsepower"]),
+        // force (base N)
+        u("n", .force, "n", 1, ["newton", "newtons"]),
+        u("kilonewton", .force, "kN", 1000, ["kilonewtons"]),
+        u("lbf", .force, "lbf", 4.4482216152605, ["poundforce"]),
+        u("kgf", .force, "kgf", 9.80665, ["kilogramforce"]),
+        u("dyne", .force, "dyn", 1e-5, ["dynes", "dyn"]),
         // angle (base degree)
         u("deg", .angle, "deg", 1, ["degree", "°"]),
         u("rad", .angle, "rad", 180 / Double.pi, ["radian"]),
@@ -218,6 +224,27 @@ enum UnitsTable {
         if ids == nil, key.count > 2, key.hasSuffix("s") { ids = index[String(key.dropLast())] }
         return (ids ?? []).compactMap { byId[$0] }
     }
+
+    /// What a bare "10 km" shows: a few common units, mostly the other measuring system. Units not listed are left alone.
+    static let defaultTargets: [String: [String]] = [
+        "km": ["mi", "m"], "m": ["ft", "yd"], "cm": ["in", "mm"], "mm": ["in", "cm"], "mi": ["km", "m"], "ft": ["m", "cm"],
+        "in": ["cm", "mm"], "yd": ["m", "ft"],
+        "kg": ["lb", "ozmass"], "g": ["ozmass", "lb"], "lb": ["kg", "ozmass"], "ozmass": ["g", "kg"], "st": ["kg", "lb"],
+        "t": ["kg", "lb"], "ust": ["kg", "lb"], "mg": ["g", "ozmass"],
+        "l": ["gal", "floz", "ml"], "ml": ["floz", "tsp"], "gal": ["l", "ml"], "qt": ["l", "ml"], "pt": ["ml", "l"],
+        "cup": ["ml", "floz", "tbsp"], "floz": ["ml", "tbsp"], "tbsp": ["ml", "tsp"], "tsp": ["ml"],
+        "c": ["f", "k"], "f": ["c", "k"], 
+        "kph": ["mph", "mps"], "mph": ["kph", "mps"], "mps": ["kph", "mph"], "knot": ["kph", "mph"], "fps": ["mps", "kph"],
+        "sqm": ["sqft", "sqyd"], "sqft": ["sqm", "sqin"], "sqkm": ["sqmi", "acre"], "sqmi": ["sqkm", "acre"],
+        "acre": ["hectare", "sqm", "sqft"], "hectare": ["acre", "sqm"], "sqcm": ["sqin"], "sqin": ["sqcm"],
+        "kcal": ["kj", "whr"], "kj": ["kcal", "j"], "j": ["cal", "kj"], "cal": ["j", "kj"], "kwhr": ["mj", "kcal"],
+        "w": ["kw", "hp"], "kw": ["hp", "w"], "hp": ["kw", "w"],
+        "psi": ["bar", "kpa", "atm"], "bar": ["psi", "kpa", "atm"], "atm": ["kpa", "psi", "bar"], "kpa": ["psi", "bar"], "mmhg": ["kpa", "psi"],
+        "deg": ["rad"], "rad": ["deg"],
+        "s": ["min", "hr"], "min": ["s", "hr"], "hr": ["min", "day"], "day": ["hr", "week"], "week": ["day", "hr"], "month": ["day", "week"], "year": ["month", "day"],
+        "mpg": ["l100km", "kmpl"], "l100km": ["mpg", "kmpl"], "kmpl": ["mpg", "l100km"],
+        "n": ["lbf", "kgf"], "lbf": ["n", "kgf"], "kgf": ["n", "lbf"], "kilonewton": ["lbf", "kgf"],
+    ]
 
     /// Whole-unit fraction row: converting x of a unit leaves a remainder expressed in the smaller unit.
     static let fraction: [String: String] = [

@@ -27,7 +27,9 @@ public struct UnitsTool: Tool {
             let shown = ToolSupport.fmt(v, context.settings)
             return [.value(title: shown, copy: shown, raw: ToolSupport.raw(v), strings: context.strings)]
         }
-        guard let (from, targets) = Self.splitUnits(rest) else { return nil }
+        guard let (from, targets) = Self.splitUnits(rest) else {
+            return Self.defaultConversions(amount: amount, unitText: rest, query: query, context: context)
+        }
         if !amount.isFinite { return [ScaleFormat.invalid(context.strings)] }
         var items: [AlfredItem] = []
         for target in targets {
@@ -38,6 +40,29 @@ public struct UnitsTool: Tool {
             items += Self.rows(amount: amount, from: pair.0, to: pair.1, context: context)
         }
         return items
+    }
+
+    /// "10 km", "1 lb", "100 f": a few common conversions for an amount with no target unit.
+    private static func defaultConversions(amount: Double, unitText: String, query: String, context: Context) -> [AlfredItem]? {
+        let found = UnitsTable.candidates(unitText).filter { UnitsTable.defaultTargets[$0.id] != nil }
+        guard !found.isEmpty, amount.isFinite else { return nil }
+        // "10k", "5m", "2b", "3t" with no space are number suffixes, not units
+        let spaced = query.range(of: #"[0-9.,]\s+\S"#, options: .regularExpression) != nil
+        if !spaced, unitText.count == 1, "kmbt".contains(unitText.lowercased()) { return nil }
+        // an ambiguous word (oz: weight or fluid) shows each reading's best match and says which is which
+        let ambiguous = found.count > 1
+        var items: [AlfredItem] = []
+        for from in found {
+            let ids = UnitsTable.defaultTargets[from.id] ?? []
+            for id in ambiguous ? Array(ids.prefix(1)) : ids {
+                guard let to = UnitsTable.byId[id] else { continue }
+                var rows = Self.rows(amount: amount, from: from, to: to, context: context, fractions: false)
+                if let bad = rows.first(where: { !$0.valid }) { return [bad] }   // out of range: one error, no partial answer
+                if ambiguous { for i in rows.indices { rows[i].subtitle = ToolSupport.tr(context.strings, "unit_dim_" + from.dim.rawValue, from.dim.rawValue.capitalized) } }
+                items += rows
+            }
+        }
+        return items.isEmpty ? nil : items
     }
 
     // MARK: parsing
@@ -187,7 +212,7 @@ public struct UnitsTool: Tool {
         return abs(value) == 1 ? unit.symbol : plural
     }
 
-    private static func rows(amount: Double, from: UnitDef, to: UnitDef, context: Context) -> [AlfredItem] {
+    private static func rows(amount: Double, from: UnitDef, to: UnitDef, context: Context, fractions: Bool = true) -> [AlfredItem] {
         let s = settingsFor(to, context.settings)
         if from.dim == .temperature, kelvin(amount, from).isNaN { return [ScaleFormat.invalid(context.strings)] }
         let rawConverted = convert(amount, from: from, to: to)
@@ -199,7 +224,7 @@ public struct UnitsTool: Tool {
         let title = "\(shown) \(unitText)"
         var items = [AlfredItem.value(title: title, copy: shown, raw: raw, withUnit: title, strings: context.strings)]
 
-        if converted >= 1, UnitsTable.fractionTargets.contains(to.id), let smallID = UnitsTable.fraction[to.id], let small = UnitsTable.byId[smallID] {
+        if fractions, converted >= 1, UnitsTable.fractionTargets.contains(to.id), let smallID = UnitsTable.fraction[to.id], let small = UnitsTable.byId[smallID] {
             let rounded = Double(NumberFormat.plain(converted, decimals: s.decimals)) ?? converted
             let whole = rounded.rounded(.towardZero)
             let frac = rounded - whole

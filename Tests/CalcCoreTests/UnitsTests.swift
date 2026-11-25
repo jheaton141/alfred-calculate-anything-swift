@@ -134,7 +134,7 @@ final class UnitsTests: XCTestCase {
     }
 
     func testNilForNonUnitQueries() async {
-        for q in ["hello", "10 + 5", "usd 100", "100 usd to eur", "10 km", "km to mi", "10 gb to mb", "20% of 150"] {
+        for q in ["hello", "10 + 5", "usd 100", "100 usd to eur", "km to mi", "10 gb to mb", "20% of 150"] {
             let r = await run(q)
             XCTAssertNil(r, q)
         }
