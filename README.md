@@ -26,6 +26,9 @@ Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter
 | VAT | `100 vat`, `vat 250`, `vat 100 at 5%`, `100 + vat 21%` (a rate in the query overrides the setting) |
 | Time | `time +15 years`, `3pm in PT`, `9am EST to Tokyo`, `2025-01-31 + 1 month`, `days until 31 december`, `time 2026-12-25 - today`, `time 1700000000`, `time 10 days after 2026-12-25`, `time 3pm in 5 days`, `time 5 business days from now`, `time business days until 2027-01-01` (weekends skipped, holidays not), `what day is 2026-12-25`, `time week number of 2026-12-25` |
 | Tip | `tip 85`, `tip 85 at 18%`, `tip 18% of 85 split 3`, `85 tip 20% between 4` (no rate shows 15, 18, 20 and 25%) |
+| Fractions | `1/3 + 1/4`, `1 1/2 * 3`, `3/4 of 80`, `0.75 to fraction`, `simplify 6/8`, `(1/2 + 1/3) * 6` (needs two fractions or a mixed number; `10/4` stays plain division) |
+| Interest | `1000 at 5% for 10 years`, `invest 5000 at 4.5% for 30 years monthly adding 200 per month`, `1000 at 5% for 6 months continuously` (annual compounding unless stated) |
+| Pricing | `80 plus 8% tax`, `108 incl 8% tax`, `20% + 10% off 100`, `20% off 80 plus 8% tax`, `was 80 now 60`, `cost 60 markup 50%`, `cost 60 margin 40%`, `price 100 margin 40%`, `cost 60 price 100` |
 | Colour | `#ff8800`, `rgb(255,136,0)`, `hsl(32,100%,50%)`, `contrast white vs black`, `lighten #336699 20%`, `darken red 10%` |
 
 ## Install
@@ -44,7 +47,7 @@ Rates are stored in the workflow's data folder (`alfred_workflow_data`). Outside
 
 ## Keywords
 
-Alfred only runs a workflow for a typed query when a keyword matches. A query that starts with a digit, `.` or `-` always works. For anything else the workflow defines these keywords, which are typed as part of the query: `calc` (or `=`) plus any text, `#`, `(`, `%`, `vat`, `tip`, `time`, `what`, `days`, `contrast`, `lighten`, `darken`, `rgb`, `hsl`, `hsv`, `hwb`, `cmyk`, `lab`, `lch`, `xyz`, and the functions `sqrt`, `abs`, `round`, `floor`, `ceil`, `ln`, `log`, `sin`, `cos`, `tan`, `exp`. Anything else needs the `calc` prefix, for example `calc 100 usd to eur`. `_caclear` clears the rates cache and `_carefresh` refreshes it.
+Alfred only runs a workflow for a typed query when a keyword matches. A query that starts with a digit, `.` or `-` always works. For anything else the workflow defines these keywords, which are typed as part of the query: `calc` (or `=`) plus any text, `#`, `(`, `%`, `vat`, `tip`, `frac`, `invest`, `cost`, `price`, `tax`, `was`, `time`, `what`, `days`, `contrast`, `lighten`, `darken`, `rgb`, `hsl`, `hsv`, `hwb`, `cmyk`, `lab`, `lch`, `xyz`, and the functions `sqrt`, `abs`, `round`, `floor`, `ceil`, `ln`, `log`, `sin`, `cos`, `tan`, `exp`. Anything else needs the `calc` prefix, for example `calc 100 usd to eur`. `_caclear` clears the rates cache and `_carefresh` refreshes it.
 
 ## Configuration
 
@@ -71,7 +74,7 @@ English, Spanish and Swedish packs for the result text are built into the binary
 
 ```sh
 swift build
-swift test                   # 252 tests; set RUN_LIVE=1 to include the live-network test
+swift test                   # 263 tests; set RUN_LIVE=1 to include the live-network test
 ./.build/debug/calc "20% of 150"
 Tests/golden/compare.sh      # compares the Swift output with recorded upstream outputs over a query corpus
 ```

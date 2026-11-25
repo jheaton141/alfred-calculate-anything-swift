@@ -8,7 +8,7 @@ public enum DefaultEngine {
             if let zone = TimeZone(identifier: id) ?? ZoneResolver.resolve(id)?.zone { time.zone = zone } else { time.invalidZone = id }
         }
         if let format = settings.timeFormat { time.formats = [format] }
-        return [TipTool(), VatTool(), PercentageTool(), PxEmRemTool(), DataStorageTool(), TimeTool(options: time), RadixTool(), UnitsTool(), CryptoTool(),
+        return [TipTool(), VatTool(), PercentageTool(), DiscountTool(), InterestTool(), FractionTool(), PxEmRemTool(), DataStorageTool(), TimeTool(options: time), RadixTool(), UnitsTool(), CryptoTool(),
                 CurrencyTool(), ColorTool(), MathTool()]
     }
 
