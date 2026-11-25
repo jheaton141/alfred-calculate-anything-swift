@@ -4,6 +4,8 @@ A fork of [biati-digital/alfred-calculate-anything](https://github.com/biati-dig
 
 This is a personal project, shared as is: use it, change it and pass it on as you like (MIT). There is no support promise, but issues and pull requests are welcome.
 
+**Download:** [CalculateAnything-5.0.0.alfredworkflow](https://github.com/jheaton141/alfred-calculate-anything-swift/releases/latest) from the latest release, then see [Install](#install).
+
 Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter copies the value with its unit.
 
 ## What changed from upstream
@@ -12,7 +14,8 @@ Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter
 - **No API keys.** Fiat rates come from [Frankfurter](https://frankfurter.dev) and [fawazahmed0/currency-api](https://github.com/fawazahmed0/exchange-api). Crypto prices come from CoinGecko, with Coinbase spot as the fallback.
 - **Works offline.** Rates are cached on disk. If every source is down, the last cached rates are shown and labelled as stale.
 - **Fixed upstream bugs:** Fahrenheit to Celsius and Celsius to Kelvin, the UK gallon, millilitres to ounces, VAT rounding, a stray extra row for feet and inches, and doubled spaces in time units.
-- **New:** arithmetic and functions, `k`/`M`/`B`/`T` suffixes, more units, more percentage phrasings, timezone conversion with daylight-saving notes (a time that is skipped or repeated on a clock change is flagged), a clear error for unknown zones, date arithmetic (`10 days after`, business days, weekday and week number of a date), compound amounts (`5 ft 3 in to cm`), fuel economy, tip and bill splitting, a rates refresh keyword, colour contrast and lighten/darken, exact fractions, compound interest with monthly deposits, and sales tax, stacked discounts, price changes and margin/markup.
+- **New:** arithmetic and functions, `k`/`M`/`B`/`T` suffixes, more units, more percentage phrasings, timezone conversion with daylight-saving notes (a time that is skipped or repeated on a clock change is flagged), a clear error for unknown zones, date arithmetic (`10 days after`, business days, weekday and week number of a date), compound amounts (`5 ft 3 in to cm`), fuel economy, tip and bill splitting, a rates refresh keyword, colour contrast and lighten/darken, exact fractions, compound interest with monthly deposits, and sales tax, stacked discounts, price changes and margin/markup. Units also accept a bare amount (`10 km`, `1 lb`, `100 f`) and show a few common conversions, force units (newton, lbf, kgf) are added, and more currency names work (`nis`, `shekel`, `taka`, `baht`, `zloty`, `ruble`, `ringgit`, `rand`, and `pound` when a money target is given).
+- **Tidier workflow canvas.** In Alfred the keywords are laid out in labelled rows (digits, calculator, functions, money and dates, colours) that feed one junction each, instead of 53 lines into the clipboard.
 
 ## Examples
 
@@ -35,15 +38,21 @@ Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter
 
 ## Install
 
-1. Build the package, or download `CalculateAnything.alfredworkflow` if you have one:
+1. Download `CalculateAnything-5.0.0.alfredworkflow` from the [latest release](https://github.com/jheaton141/alfred-calculate-anything-swift/releases/latest), or build it yourself (it needs Swift 5.9 or later and the Xcode command line tools):
 
    ```sh
-   Packaging/build.sh
+   zsh Packaging/build.sh
    ```
 
    The result is `Packaging/dist/CalculateAnything.alfredworkflow`.
-2. Double-click it to import it into Alfred. Alfred 5 with the Powerpack is required.
-3. If you downloaded the package in a browser, macOS quarantines the unsigned binary. Clear it once; see [Packaging/README.md](Packaging/README.md) for the command, and for Developer ID signing and notarization.
+2. Double-click it to import it into Alfred. Alfred 5 with the Powerpack is required. Importing over an earlier version of this fork offers an Update that keeps your settings.
+3. A package downloaded in a browser is quarantined by macOS, and the ad-hoc signed binary will not run until you clear that once:
+
+   ```sh
+   xattr -dr com.apple.quarantine ~/Library/Application\ Support/Alfred/Alfred.alfredpreferences/workflows/user.workflow.*/calc
+   ```
+
+   Use your own Alfred preferences folder if it is elsewhere. A package you build locally is not quarantined. See [Packaging/README.md](Packaging/README.md) for Developer ID signing and notarization.
 
 Rates are stored in the workflow's data folder (`alfred_workflow_data`). Outside Alfred the binary uses `./.data`. To clear the cache, delete `rates-*.json` there, or use the `_caclear` keyword. `_carefresh` forces a refresh now and reports the source and count (or that it stayed offline).
 
