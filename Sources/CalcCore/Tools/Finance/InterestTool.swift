@@ -33,15 +33,15 @@ public struct InterestTool: Tool {
         func item(_ title: String, _ sub: String, _ v: Double) -> AlfredItem {
             var i = AlfredItem.value(title: title, copy: ToolSupport.fmt(v, s), raw: ToolSupport.raw(v), strings: str); i.subtitle = sub; return i
         }
-        let yearsText = NumberFormat.plain(p.years, decimals: 2)
+        let yearsText = ToolSupport.plainLocal(p.years, decimals: 2, s)
         let how = p.perYear.isInfinite ? "compounded continuously" : "compounded \(Self.name(p.perYear))"
-        var sub = "\(ToolSupport.fmt(p.principal, s)) at \(NumberFormat.plain(p.rate, decimals: 4))% for \(yearsText) years, \(how)"
+        var sub = "\(ToolSupport.fmt(p.principal, s)) at \(ToolSupport.plainLocal(p.rate, decimals: 4, s))% for \(yearsText) years, \(how)"
         if p.deposit > 0 { sub += ", adding \(ToolSupport.fmt(p.deposit, s)) per \(p.depositsMonthly ? "month" : "year")" }
         var items = [item("Final balance \(ToolSupport.fmt(balance, s))", sub, balance),
                      item("Interest earned \(ToolSupport.fmt(interest, s))", "Balance minus \(ToolSupport.fmt(contributed, s)) paid in", interest)]
         if p.deposit > 0 { items.append(item("Total paid in \(ToolSupport.fmt(contributed, s))", "Starting amount plus deposits", contributed)) }
         let apyPct = apy * 100
-        items.append(item("Effective annual rate \(NumberFormat.plain(apyPct, decimals: 4))%", "What the nominal rate grows to in one year", apyPct))
+        items.append(item("Effective annual rate \(ToolSupport.plainLocal(apyPct, decimals: 4, s))%", "What the nominal rate grows to in one year", apyPct))
         return items
     }
 

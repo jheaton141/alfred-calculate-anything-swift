@@ -15,7 +15,7 @@ public struct DiscountTool: Tool {
         }
         func money(_ label: String, _ sub: String, _ v: Double) -> AlfredItem { item("\(label) \(ToolSupport.fmt(v, s))", sub, copy: ToolSupport.fmt(v, s), raw: v) }
         func pct(_ label: String, _ sub: String, _ v: Double) -> AlfredItem {
-            let t = NumberFormat.plain(v, decimals: 2)
+            let t = ToolSupport.plainLocal(v, decimals: 2, s)
             return item("\(label) \(t)%", sub, copy: t, raw: v)
         }
         func ok(_ vs: Double...) -> Bool { vs.allSatisfy { $0.isFinite && $0 >= 0 && $0 <= 1e12 } }
@@ -28,7 +28,7 @@ public struct DiscountTool: Tool {
            let total = num(g[0]), let rate = num(g[1]) {
             guard ok(total, rate), rate <= 1_000 else { return bad }
             let net = total / (1 + rate / 100)
-            return [money("Before tax", "\(ToolSupport.fmt(total, s)) includes \(NumberFormat.plain(rate, decimals: 4))% tax", net), money("Tax", "Part of the total", total - net), money("Total", "As given", total)]
+            return [money("Before tax", "\(ToolSupport.fmt(total, s)) includes \(ToolSupport.plainLocal(rate, decimals: 4, s))% tax", net), money("Tax", "Part of the total", total - net), money("Total", "As given", total)]
         }
         let discount = #"(?:"# + n + #"\s*%(?:\s*(?:\+|and|then)\s*"# + n + #"\s*%)?\s*off\s*"# + n + #")"#
         if let g = ToolSupport.match(discount + #"\s*(?:\+|plus|and|with)\s*"# + n + #"\s*%\s*"# + taxWord, in: q) ?? ToolSupport.match(discount, in: q).map({ $0 + [""] }),
@@ -38,22 +38,23 @@ public struct DiscountTool: Tool {
             guard ok(d1, d2, price), d1 <= 100, d2 <= 100, taxRate.map({ ok($0) && $0 <= 1_000 }) ?? true else { return bad }
             let sale = price * (1 - d1 / 100) * (1 - d2 / 100)
             let off = (1 - sale / (price == 0 ? 1 : price)) * 100
-            var items = [money("Sale price", d2 > 0 ? "\(NumberFormat.plain(d1, decimals: 4))% then \(NumberFormat.plain(d2, decimals: 4))% off \(ToolSupport.fmt(price, s)), \(NumberFormat.plain(off, decimals: 2))% off in all" : "\(NumberFormat.plain(d1, decimals: 4))% off \(ToolSupport.fmt(price, s))", sale),
+            var items = [money("Sale price", d2 > 0 ? "\(ToolSupport.plainLocal(d1, decimals: 4, s))% then \(ToolSupport.plainLocal(d2, decimals: 4, s))% off \(ToolSupport.fmt(price, s)), \(ToolSupport.plainLocal(off, decimals: 2, s))% off in all" : "\(ToolSupport.plainLocal(d1, decimals: 4, s))% off \(ToolSupport.fmt(price, s))", sale),
                          money("You save", "Original price minus sale price", price - sale)]
             if let t = taxRate {
-                items.insert(money("Total with tax", "Sale price plus \(NumberFormat.plain(t, decimals: 4))% tax of \(ToolSupport.fmt(sale * t / 100, s))", sale * (1 + t / 100)), at: 0)
+                items.insert(money("Total with tax", "Sale price plus \(ToolSupport.plainLocal(t, decimals: 4, s))% tax of \(ToolSupport.fmt(sale * t / 100, s))", sale * (1 + t / 100)), at: 0)
             }
             return items
         }
         let toTaxed = ToolSupport.match(n + #"\s*(?:\+|plus|with|and)\s*"# + n + #"\s*%\s*"# + taxWord, in: q) ?? ToolSupport.match(n + #"\s*%\s*"# + taxWord + #"\s*(?:on|of)\s*"# + n, in: q).map { [$0[1], $0[0]] }
         if let g = toTaxed, let price = num(g[0]), let rate = num(g[1]) {
             guard ok(price, rate), rate <= 1_000 else { return bad }
-            return [money("Total", "\(ToolSupport.fmt(price, s)) plus \(NumberFormat.plain(rate, decimals: 4))% tax", price * (1 + rate / 100)), money("Tax", "\(NumberFormat.plain(rate, decimals: 4))% of \(ToolSupport.fmt(price, s))", price * rate / 100)]
+            return [money("Total", "\(ToolSupport.fmt(price, s)) plus \(ToolSupport.plainLocal(rate, decimals: 4, s))% tax", price * (1 + rate / 100)), money("Tax", "\(ToolSupport.plainLocal(rate, decimals: 4, s))% of \(ToolSupport.fmt(price, s))", price * rate / 100)]
         }
         // Price change: "was 80 now 60"
         if let g = ToolSupport.match(#"(?:was|from|old)\s*"# + n + #"\s*(?:now|to|new)\s*"# + n, in: q), let was = num(g[0]), let now = num(g[1]) {
             guard ok(was, now), was > 0 else { return bad }
             let change = (now - was) / was * 100
+            guard change.isFinite else { return bad }
             return [pct(change < 0 ? "Discount" : "Increase", "From \(ToolSupport.fmt(was, s)) to \(ToolSupport.fmt(now, s))", abs(change)), money(change < 0 ? "You save" : "Extra cost", "Difference", abs(now - was))]
         }
         return Self.margins(q, n, s, str, num)
@@ -76,7 +77,7 @@ public struct DiscountTool: Tool {
         let leftover = text.replacingOccurrences(of: #"\b(?:and|with|at|for|a|the|of|then|is|,)\b|,"#, with: " ", options: .regularExpression).split(separator: " ")
         guard leftover.isEmpty, [cost, price, markup, margin].compactMap({ $0 }).count == 2 else { return nil }
         let bad = [ToolSupport.invalidInput(str)]
-        func pctOf(_ v: Double) -> String { NumberFormat.plain(v, decimals: 2) + "%" }
+        func pctOf(_ v: Double) -> String { ToolSupport.plainLocal(v, decimals: 2, s) + "%" }
         func item(_ title: String, _ sub: String, _ copy: String, _ raw: Double) -> AlfredItem {
             var i = AlfredItem.value(title: title, copy: copy, raw: ToolSupport.raw(raw), strings: str); i.subtitle = sub; return i
         }
@@ -97,8 +98,8 @@ public struct DiscountTool: Tool {
         if cost == nil { items.append(item("Cost \(ToolSupport.fmt(cc, s))", "Selling price \(ToolSupport.fmt(pp, s))", ToolSupport.fmt(cc, s), cc)) }
         if price == nil { items.append(item("Price \(ToolSupport.fmt(pp, s))", "Cost \(ToolSupport.fmt(cc, s))", ToolSupport.fmt(pp, s), pp)) }
         items.append(item("Profit \(ToolSupport.fmt(profit, s))", "Price minus cost", ToolSupport.fmt(profit, s), profit))
-        if margin == nil { items.append(item("Margin \(pctOf(outMargin))", "Profit as a share of the price", NumberFormat.plain(outMargin, decimals: 2), outMargin)) }
-        if markup == nil { items.append(item("Markup \(pctOf(outMarkup))", "Profit as a share of the cost", NumberFormat.plain(outMarkup, decimals: 2), outMarkup)) }
+        if margin == nil { items.append(item("Margin \(pctOf(outMargin))", "Profit as a share of the price", ToolSupport.plainLocal(outMargin, decimals: 2, s), outMargin)) }
+        if markup == nil, cc > 0 { items.append(item("Markup \(pctOf(outMarkup))", "Profit as a share of the cost", ToolSupport.plainLocal(outMarkup, decimals: 2, s), outMarkup)) }
         return items
     }
 

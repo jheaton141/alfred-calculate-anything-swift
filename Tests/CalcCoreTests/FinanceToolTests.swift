@@ -36,10 +36,23 @@ final class FractionToolTests: XCTestCase {
         XCTAssertNil(f("2 + 3"))
     }
 
+    func testReviewFixes() {
+        XCTAssertNil(f("fraction " + String(repeating: "-", count: 1500) + "1/2"))
+        XCTAssertNil(f(String(repeating: "(", count: 100) + "1/2 + 1/3" + String(repeating: ")", count: 100)))
+        XCTAssertNil(f("0x10/2 + 1/4"))
+        XCTAssertNil(f("999999999999999/7 * 999999999999999/11"))
+        var comma = Settings(); comma.decimalSeparator = ","
+        XCTAssertNil(titles(FractionTool(), "1.000 + 1/2 + 1/2", comma))
+        XCTAssertEqual(titles(FractionTool(), "0,75 to fraction", comma)?.first, "3/4")
+        XCTAssertEqual(f("0.333333 to fraction")?.last, "≈ 1/3")
+        XCTAssertEqual(f("2 x 3/4 + 1/4")?.first, "7/4")
+    }
+
     func testErrors() {
         XCTAssertEqual(f("1/0 + 1/2"), ["Cannot divide by zero"])
         XCTAssertEqual(f("1/2 / 0/1"), ["Cannot divide by zero"])
-        XCTAssertEqual(f("99999999999/3 * 99999999999/7"), ["Invalid input"])
+        XCTAssertEqual(f("frac 99999999999/3 * 99999999999/7"), ["Invalid input"])
+        XCTAssertNil(f("99999999999/3 * 99999999999/7"))
     }
 }
 
@@ -88,6 +101,14 @@ final class DiscountToolTests: XCTestCase {
         XCTAssertEqual(d("cost 60 markup 50%"), ["Price 90", "Profit 30", "Margin 33.33%"])
         XCTAssertEqual(d("cost 60 margin 40%"), ["Price 100", "Profit 40", "Markup 66.67%"])
         XCTAssertEqual(d("price 100 margin 40%"), ["Cost 60", "Profit 40", "Markup 66.67%"])
+    }
+
+    func testReviewFixes() {
+        XCTAssertEqual(d("cost 0 price 80"), ["Profit 80", "Margin 100%"])
+        XCTAssertEqual(d("was 1e-320 now 5"), ["Invalid input"])
+        var comma = Settings(); comma.decimalSeparator = ","
+        XCTAssertEqual(titles(DiscountTool(), "cost 60 markup 50%", comma)?.last, "Margin 33,33%")
+        XCTAssertEqual(titles(InterestTool(), "1000 at 5,5% for 10 years", comma)?.last, "Effective annual rate 5,5%")
     }
 
     func testGuards() {

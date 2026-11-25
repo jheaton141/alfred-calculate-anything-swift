@@ -44,8 +44,11 @@ public struct FractionTool: Tool {
         }
         if q.range(of: #"^\(?\d+/\d+ of "#, options: .regularExpression) != nil { q = q.replacingOccurrences(of: " of ", with: " * "); explicit = true }
         let wantsDecimalInput = explicit
-        if context.settings.decimalSeparator == "," { q = q.replacingOccurrences(of: ",", with: ".") }
-        guard let toks = Self.lex(q), !toks.isEmpty else { return nil }
+        if context.settings.decimalSeparator == "," {
+            guard !q.contains(".") else { return nil }   // "." is a thousands separator here; leave it to the math tool
+            q = q.replacingOccurrences(of: ",", with: ".")
+        }
+        guard q.count <= 200, let toks = Self.lex(q), !toks.isEmpty else { return nil }
         let fracLiterals = toks.filter { if case .frac = $0 { return true }; return false }.count
         guard explicit || fracLiterals >= 2 || (fracLiterals >= 1 && Self.hasMixed(toks)) else { return nil }
         let s = context.settings, str = context.strings
@@ -54,7 +57,7 @@ public struct FractionTool: Tool {
             let result = try parser.parseAll()
             return Self.rows(result, toks, wantsDecimalInput, s, str)
         } catch Fail.zero { return [ToolSupport.divisionByZero(str)] }
-        catch Fail.overflow { return [ToolSupport.invalidInput(str)] }
+        catch Fail.overflow { return explicit ? [ToolSupport.invalidInput(str)] : nil }
         catch { return nil }
     }
 
@@ -68,7 +71,7 @@ public struct FractionTool: Tool {
             let v = f.value
             items.append(item(ToolSupport.show(v, s), ToolSupport.tr(str, "frac_decimal", "Decimal"), copy: ToolSupport.show(v, s), raw: ToolSupport.rawValue(v, s)))
         }
-        if decimalInput, toks.count == 1, case .dec = toks[0], let a = approximate(f.value, maxDen: 1_000), a != f {
+        if decimalInput, toks.count == 1, case .dec = toks[0], let a = approximate(f.value, maxDen: 1_000), a != f, a.d != 1 {
             items.append(item("≈ " + a.text, ToolSupport.tr(str, "frac_approx", "Closest simple fraction"), copy: a.text, raw: a.text))
         }
         return items
@@ -84,7 +87,7 @@ public struct FractionTool: Tool {
             let h2 = a * h1 + h0, k2 = a * k1 + k0
             guard k2 <= Double(maxDen), h2 < 9e15 else { break }
             (h0, h1, k0, k1) = (h1, h2, k1, k2)
-            if abs(abs(x) - h1 / k1) <= abs(x) * 1e-6 { return Frac(Int(h1) * (x < 0 ? -1 : 1), Int(k1)) }
+            if abs(abs(x) - h1 / k1) <= abs(x) * 1e-5 { return Frac(Int(h1) * (x < 0 ? -1 : 1), Int(k1)) }
             let frac = r - a
             if frac < 1e-12 { break }
             r = 1 / frac
@@ -123,6 +126,7 @@ public struct FractionTool: Tool {
                 continue
             }
             switch ch {
+            case "x" where !(i > 0 && c[i - 1] == " " && i + 1 < c.count && c[i + 1] == " "): return nil   // "0x10" is not a product
             case "+", "-", "*", "x", "×", "÷", "/": out.append(.op(ch == "x" || ch == "×" ? "*" : ch == "÷" ? "/" : ch))
             case "(": out.append(.open)
             case ")": out.append(.close)
@@ -136,6 +140,7 @@ public struct FractionTool: Tool {
     private struct Parser {
         let toks: [Tok]
         var pos = 0
+        var depth = 0
         init(toks: [Tok]) { self.toks = toks }
 
         mutating func parseAll() throws -> Frac {
@@ -169,6 +174,8 @@ public struct FractionTool: Tool {
             return v
         }
         mutating func unary() throws -> Frac {
+            depth += 1; defer { depth -= 1 }
+            guard depth < 64 else { throw Fail.bad }
             if pos < toks.count, case .op("-") = toks[pos] {
                 pos += 1
                 let v = try unary()
@@ -194,6 +201,8 @@ public struct FractionTool: Tool {
             case .dec(let n, let d): guard let f = Frac(n, d) else { throw Fail.overflow }; return f
             case .frac(let a, let b): guard b != 0 else { throw Fail.zero }; guard let f = Frac(a, b) else { throw Fail.overflow }; return f
             case .open:
+                depth += 1; defer { depth -= 1 }
+                guard depth < 64 else { throw Fail.bad }
                 let v = try expr()
                 guard pos < toks.count, toks[pos] == .close else { throw Fail.bad }
                 pos += 1

@@ -74,6 +74,12 @@ enum ToolSupport {
     /// Raw copy string that never prints hundreds of digits.
     static func rawValue(_ v: Double, _ s: Settings) -> String { usesScientific(v, s) ? scientific(v, digits: 15) : raw(v) }
 
+    /// Plain number text with the user's decimal separator.
+    static func plainLocal(_ v: Double, decimals: Int, _ s: Settings) -> String {
+        let t = NumberFormat.plain(v, decimals: decimals)
+        return s.decimalSeparator == "." ? t : t.replacingOccurrences(of: ".", with: String(s.decimalSeparator))
+    }
+
     static func invalidInput(_ strings: Strings) -> AlfredItem { .error(tr(strings, "error_math_domain", "Invalid input")) }
 
     /// Unformatted number for the cmd (raw copy) action.
