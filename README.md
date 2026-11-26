@@ -6,7 +6,7 @@ This is a personal project, shared as is: use it, change it and pass it on as yo
 
 **Download:** [CalculateAnything-5.0.0.alfredworkflow](https://github.com/jheaton141/alfred-calculate-anything-swift/releases/latest) from the latest release, then see [Install](#install).
 
-Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter copies the value with its unit.
+Select text in any app and use the Universal Action **Convert with Calculate Anything** to convert it. Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter copies the value with its unit.
 
 ## What changed from upstream
 
@@ -58,7 +58,7 @@ Rates are stored in the workflow's data folder (`alfred_workflow_data`). Outside
 
 ## Keywords
 
-Alfred only runs a workflow for a typed query when a keyword matches. A query that starts with a digit, `.` or `-` always works. For anything else the workflow defines these keywords, which are typed as part of the query: `calc` (or `=`) plus any text, `#`, `(`, `%`, `vat`, `tip`, `frac`, `invest`, `cost`, `price`, `tax`, `was`, `time`, `what`, `days`, `contrast`, `lighten`, `darken`, `rgb`, `hsl`, `hsv`, `hwb`, `cmyk`, `lab`, `lch`, `xyz`, and the functions `sqrt`, `abs`, `round`, `floor`, `ceil`, `ln`, `log`, `sin`, `cos`, `tan`, `exp`. Anything else needs the `calc` prefix, for example `calc 100 usd to eur`. `_caclear` clears the rates cache and `_carefresh` refreshes it.
+Alfred only runs a workflow for a typed query when a keyword matches. A query that starts with a digit, `.` or `-` always works. For anything else the workflow defines these keywords, which are typed as part of the query: `calc` (or `=`) plus any text, `conv` (units, currency or crypto) and `cur` (currency), which take the plain query (`conv 10 km to mi`), `#`, `(`, `%`, `vat`, `tip`, `frac`, `invest`, `cost`, `price`, `tax`, `was`, `time`, `what`, `days`, `contrast`, `lighten`, `darken`, `rgb`, `hsl`, `hsv`, `hwb`, `cmyk`, `lab`, `lch`, `xyz`, and the functions `sqrt`, `abs`, `round`, `floor`, `ceil`, `ln`, `log`, `sin`, `cos`, `tan`, `exp`. Anything else needs the `calc` prefix, for example `calc 100 usd to eur`. `_caclear` clears the rates cache and `_carefresh` refreshes it.
 
 ## Configuration
 
