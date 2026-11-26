@@ -4,7 +4,7 @@ A fork of [biati-digital/alfred-calculate-anything](https://github.com/biati-dig
 
 This is a personal project, shared as is: use it, change it and pass it on as you like (MIT). There is no support promise, but issues and pull requests are welcome.
 
-**Download:** [CalculateAnything-5.0.0.alfredworkflow](https://github.com/jheaton141/alfred-calculate-anything-swift/releases/latest) from the latest release, then see [Install](#install).
+**Download:** [CalculateAnything-5.0.1.alfredworkflow](https://github.com/jheaton141/alfred-calculate-anything-swift/releases/latest) from the latest release, then see [Install](#install).
 
 Select text in any app and use the Universal Action **Convert with Calculate Anything** to convert it. Enter copies the formatted value, Cmd+Enter copies the raw number, and Alt+Enter copies the value with its unit.
 
@@ -38,7 +38,7 @@ Select text in any app and use the Universal Action **Convert with Calculate Any
 
 ## Install
 
-1. Download `CalculateAnything-5.0.0.alfredworkflow` from the [latest release](https://github.com/jheaton141/alfred-calculate-anything-swift/releases/latest), or build it yourself (it needs Swift 5.9 or later and the Xcode command line tools):
+1. Download `CalculateAnything-5.0.1.alfredworkflow` from the [latest release](https://github.com/jheaton141/alfred-calculate-anything-swift/releases/latest), or build it yourself (it needs Swift 5.9 or later and the Xcode command line tools):
 
    ```sh
    zsh Packaging/build.sh
